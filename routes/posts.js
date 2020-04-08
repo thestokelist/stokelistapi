@@ -1,7 +1,11 @@
 const Router = require('express-promise-router')
 const sequelize = require('../db')
+const sendPostValidationMessage = require ('../mail')
 const { Op } = require("sequelize");
 const Post = require('../models/post')
+const sanitizeHtml = require('sanitize-html');
+const validator = require('validator');
+
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
 const router = new Router()
@@ -9,6 +13,13 @@ const router = new Router()
 module.exports = router
 
 const postAttributes = ['id','title','price','location','description','photoFileSize'];
+
+const stokeListSanitize = dirty => sanitizeHtml(dirty, {
+  allowedTags: [ 'b', 'i', 'p', 'br', 'a'],
+  allowedAttributes: {
+    'a': [ 'href' ]
+  }
+});
 
 router.get('/', async (req, res) => {
   //TODO: Only get description snippet, don't need whole thing
@@ -28,7 +39,6 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/search', async (req, res) => {
-  //TODO: Should I use tags here?
   //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
   const query = '%'+req.query.term+'%'
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
@@ -79,23 +89,40 @@ router.get('/:id', async (req, res) => {
   }).then(post => res.json(post))
 })
 
+router.get('/v/:uuid', async (req, res) => {
+  const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
+  Post.findOne({
+    where: {
+      guid: postUUID,
+    }
+  }).then(post => {
+    try {
+      post.emailVerified = true
+      post.save()
+      res.sendStatus(200)
+    } catch (err) {
+      console.log(err.message)
+      res.status(500).send(err.message)
+    }
+  })
+})
+
 router.post('/', async (req, res) => {
-  //TODO: Sanitize html inputs
   const post = await Post.build({
-    'title': req.body.title || null, 
-    'description' : req.body.description || null, 
-    'price': req.body.price || null,
+    'title': stokeListSanitize(req.body.title) || null, 
+    'description' : stokeListSanitize(req.body.description) || null, 
+    'price': stokeListSanitize(req.body.price) || null,
     'email': req.body.email || null,
     'location': req.body.location || null
   });
   post.remoteIp = (req.headers['x-forwarded-for'] || req.connection.remoteAddress)
   try {
     await post.save()
+    sendPostValidationMessage(post) 
     res.sendStatus(200);
   } catch (err) {
     console.log(err.message)
     res.status(500).send(err.message)
     return
   }
-  //TODO: Fire email to user
 })
