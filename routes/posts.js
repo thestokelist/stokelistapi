@@ -2,7 +2,6 @@ const Router = require('express-promise-router')
 const sequelize = require('../db')
 const { Op } = require("sequelize");
 const Post = require('../models/post')
-// create a new express-promise-router
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
 const router = new Router()
@@ -12,6 +11,7 @@ module.exports = router
 const postAttributes = ['id','title','price','location','description','photoFileSize'];
 
 router.get('/', async (req, res) => {
+  //TODO: Only get description snippet, don't need whole thing
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
   Post.findAll({
     attributes: postAttributes,
@@ -28,6 +28,7 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/search', async (req, res) => {
+  //TODO: Should I use tags here?
   //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
   const query = '%'+req.query.term+'%'
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
@@ -79,12 +80,22 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
-  //create a new post object from the parameters
-  //add ip address from req
-  //check that the captcha worked
-  //fire the email to the user (how?? - stub for now)
-  //fire a 200
-  
-  console.log('Got body:', req.body);
-  res.sendStatus(200);
+  //TODO: Sanitize html inputs
+  const post = await Post.build({
+    'title': req.body.title || null, 
+    'description' : req.body.description || null, 
+    'price': req.body.price || null,
+    'email': req.body.email || null,
+    'location': req.body.location || null
+  });
+  post.remoteIp = (req.headers['x-forwarded-for'] || req.connection.remoteAddress)
+  try {
+    await post.save()
+    res.sendStatus(200);
+  } catch (err) {
+    console.log(err.message)
+    res.status(500).send(err.message)
+    return
+  }
+  //TODO: Fire email to user
 })
