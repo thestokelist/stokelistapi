@@ -21,6 +21,7 @@ const stokeListSanitize = dirty => sanitizeHtml(dirty, {
   }
 });
 
+//Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
   //TODO: Only get description snippet, don't need whole thing
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
@@ -38,6 +39,7 @@ router.get('/', async (req, res) => {
   }).then(posts => res.json(posts))
 })
 
+//Get 50 posts that correspond to the search term, with optional offset
 router.get('/search', async (req, res) => {
   //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
   const query = '%'+req.query.term+'%'
@@ -63,6 +65,7 @@ router.get('/search', async (req, res) => {
   }).then(posts => res.json(posts))
 })
 
+//Get all sticky posts
 router.get('/sticky', async (req, res) => {
   Post.findAll({
     attributes: postAttributes,
@@ -75,6 +78,7 @@ router.get('/sticky', async (req, res) => {
   }).then(posts => res.json(posts))
 })
 
+//Get a single post, by public ID
 router.get('/:id', async (req, res) => {
   const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null;
   Post.findOne({
@@ -89,6 +93,7 @@ router.get('/:id', async (req, res) => {
   }).then(post => res.json(post))
 })
 
+//Validate a single post, by private guid
 router.get('/v/:uuid', async (req, res) => {
   const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
   Post.findOne({
@@ -107,6 +112,25 @@ router.get('/v/:uuid', async (req, res) => {
   })
 })
 
+//Delete a single post, by private guid
+router.get('/d/:uuid', async (req, res) => {
+  const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
+  Post.findOne({
+    where: {
+      guid: postUUID,
+    }
+  }).then(post => {
+    try {
+      post.destroy()
+      res.sendStatus(200)
+    } catch (err) {
+      console.log(err.message)
+      res.status(500).send(err.message)
+    }
+  })
+})
+
+//Create a new post
 router.post('/', async (req, res) => {
   const post = await Post.build({
     'title': stokeListSanitize(req.body.title) || null, 

@@ -20,7 +20,7 @@ http://${process.env.HOSTNAME}/posts/v/${post.guid}
         
         
 To DELETE your post at any time, please visit this link:
-http://post.thestoke.ca/d/19dc22d8-38f0-4008-ab95-a2e7104b5dbe
+http://${process.env.HOSTNAME}/posts/d/${post.guid}
         
 Thanks, The Stoke List.`
 });
