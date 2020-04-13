@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon app.js",
+    "test": "jest"
   },
   "author": "Luke Norman",
   "license": "ISC",
@@ -19,11 +20,20 @@
     "pg-hstore": "^2.3.3",
     "pg-native": "^3.0.0",
     "postmark": "^2.5.1",
-    "sanitize-html": "^1.22.1",
+    "sanitize-html": "^1.23.0",
     "sequelize": "^5.21.6",
     "validator": "^13.0.0"
   },
   "devDependencies": {
-    "reload": "^3.0.4"
+    "jest": "^25.3.0",
+    "nodemon": "^2.0.3",
+    "reload": "^3.0.4",
+    "supertest": "^4.0.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ]
   }
 }
