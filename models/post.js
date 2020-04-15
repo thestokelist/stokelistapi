@@ -51,6 +51,7 @@ Post.init({
      sticky: { type : DataTypes.BOOLEAN, defaultValue: false },
      emailVerified: { type : DataTypes.BOOLEAN, defaultValue: false, field: 'email_verified' },
      remoteIp: { type : DataTypes.STRING, field: 'remote_ip' },
+     exactLocation: {type: DataTypes.GEOMETRY, field: 'exact_location'}
      //Ignored columns that appear not to be used/used anymore:
      // price_in_cents, computed_tags, originating_country/region/lat_lng
      // is_awesome, is_idiotic, tags

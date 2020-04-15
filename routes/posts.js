@@ -12,7 +12,7 @@ const router = new Router()
 // export our router to be mounted by the parent application
 module.exports = router
 
-const postAttributes = ['id','title','price','location','description','photoFileSize'];
+const postAttributes = ['id','title','price','location','description','photoFileSize','exactLocation'];
 
 const stokeListSanitize = dirty => sanitizeHtml(dirty, {
   allowedTags: [ 'b', 'i', 'p', 'br', 'a', 'img'],
@@ -141,7 +141,8 @@ router.post('/', async (req, res) => {
     'description' : stokeListSanitize(req.body.description) || null, 
     'price': stokeListSanitize(req.body.price) || null,
     'email': req.body.email || null,
-    'location': req.body.location || null
+    'location': req.body.location || null,
+    'exactLocation' : req.body.exactLocation || null
   });
   post.remoteIp = (req.headers['x-forwarded-for'] || req.connection.remoteAddress)
   try {
