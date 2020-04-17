@@ -1,10 +1,12 @@
 const Router = require('express-promise-router')
 const sequelize = require('../db')
 const sendPostValidationMessage = require ('../mail')
-const { Op } = require("sequelize");
+const { Op } = require("sequelize")
 const Post = require('../models/post')
-const sanitizeHtml = require('sanitize-html');
-const validator = require('validator');
+const User = require('../models/user')
+const sanitizeHtml = require('sanitize-html')
+const validator = require('validator')
+const crypto = require("crypto")
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -103,11 +105,19 @@ router.get('/v/:uuid', async (req, res) => {
     where: {
       guid: postUUID,
     }
-  }).then(post => {
+  }).then(async post => {
     try {
       post.emailVerified = true
       post.save()
-      res.sendStatus(200)
+      let hmacRet
+      const user = await User.findOne({
+         where: {
+           email: post.email,
+         }
+      })
+      const hmac = crypto.createHmac('sha256', user.secret);
+      hmac.update(postUUID)
+      res.status(200).send(hmac.digest('hex'))
     } catch (err) {
       console.log(err.message)
       res.status(500).send(err.message)
@@ -125,6 +135,7 @@ router.get('/d/:uuid', async (req, res) => {
     }
   }).then(post => {
     try {
+      //TODO: Add validation from token
       post.destroy()
       res.sendStatus(200)
     } catch (err) {
@@ -154,10 +165,4 @@ router.post('/', async (req, res) => {
     res.status(500).send(err.message)
     return
   }
-})
-
-//Create a new post
-router.post('/sync', async (req, res) => {
-  Post.sync({ alter: true })
-  res.sendStatus(200);
 })

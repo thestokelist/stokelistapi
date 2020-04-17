@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes, Model } = require('sequelize');
 const sequelize = require('../db')
+const User = require('./user')
 
 class Post extends Model {}
 
@@ -65,4 +66,12 @@ Post.init({
   deletedAt: 'deleted_at'
 });
 
-  module.exports = Post
+Post.afterCreate(async (post, options) => {
+  User.findOrCreate( {
+    where: {
+      email: post.email    
+    }
+  })
+});
+
+module.exports = Post
