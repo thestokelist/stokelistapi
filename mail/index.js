@@ -4,7 +4,7 @@ dotenv.config()
 
 const client = new postmark.Client(process.env.POSTMARK_KEY);
 
-const sendPostValidationMessage = post => {
+exports.sendPostValidationMessage = post => {
     client.sendEmail({
         "From": "list@thestoke.ca",
         "To": post.email,
@@ -26,4 +26,20 @@ Thanks, The Stoke List.`
 });
 }
 
-module.exports = sendPostValidationMessage
+exports.sendLoginMessage = user => {
+    client.sendEmail({
+        "From": "list@thestoke.ca",
+        "To": user.email,
+        "Subject": `Your Stoke List Login`,
+        "TextBody": 
+`You're *almost* done!
+
+You must click the link below in order to login to your account
+
+http://${process.env.HOSTNAME}/login/${user.loginToken}
+
+If you didn't request this email, we're sorry - you can just ignore it
+        
+Thanks, The Stoke List.`
+})
+}

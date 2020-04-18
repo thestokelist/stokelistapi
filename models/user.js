@@ -30,8 +30,14 @@ User.init(
     },
     secret: {
       type : DataTypes.UUID, 
-      defaultValue: DataTypes.UUIDV4 
-    },    
+      defaultValue: DataTypes.UUIDV4,
+      allowNull: false 
+    },
+    loginToken: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'login_token' 
+    }    
   }, {
     sequelize,
     modelName: 'User',
