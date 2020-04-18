@@ -1,6 +1,6 @@
 const Router = require('express-promise-router')
 const sequelize = require('../db')
-const sendPostValidationMessage = require ('../mail')
+const { sendPostValidationMessage }= require ('../mail')
 const { Op } = require("sequelize")
 const Post = require('../models/post')
 const User = require('../models/user')
@@ -28,7 +28,7 @@ const stokeListSanitize = dirty => sanitizeHtml(dirty, {
 router.get('/', async (req, res) => {
   //TODO: Only get description snippet, don't need whole thing
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
-  Post.findAll({
+  const posts = await Post.findAll({
     attributes: postAttributes,
     where: {
       sticky: false,
@@ -39,7 +39,8 @@ router.get('/', async (req, res) => {
     ],
     limit: 50,
     offset: offset
-  }).then(posts => res.json(posts))
+  })
+  res.json(posts)
 })
 
 //Get 50 posts that correspond to the search term, with optional offset
@@ -47,7 +48,7 @@ router.get('/search', async (req, res) => {
   //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
   const query = '%'+req.query.term+'%'
   const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0;
-  Post.findAll({
+  const posts = await Post.findAll({
     attributes: postAttributes,
     where: {
       [Op.or]: {
@@ -65,12 +66,13 @@ router.get('/search', async (req, res) => {
     ],
     limit: 50,
     offset: offset
-  }).then(posts => res.json(posts))
+  })
+  res.json(posts)
 })
 
 //Get all sticky posts
 router.get('/sticky', async (req, res) => {
-  Post.findAll({
+  const posts = await Post.findAll({
     attributes: postAttributes,
     where: {
       sticky: true
@@ -78,13 +80,14 @@ router.get('/sticky', async (req, res) => {
     order: [
       ['created_at', 'DESC'],
     ]
-  }).then(posts => res.json(posts))
+  })
+  res.json(posts)
 })
 
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
   const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null;
-  Post.findOne({
+  const post = await Post.findOne({
     attributes: postAttributes.concat(['created_at']),
     where: {
       id: postID,
@@ -93,7 +96,8 @@ router.get('/:id', async (req, res) => {
     order: [
       ['created_at', 'DESC'],
     ]
-  }).then(post => res.json(post))
+  })
+  res.json(post)
 })
 
 
@@ -101,48 +105,45 @@ router.get('/:id', async (req, res) => {
 //Validate a single post, by private guid
 router.get('/v/:uuid', async (req, res) => {
   const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
-  Post.findOne({
+  let post = await Post.findOne({
     where: {
       guid: postUUID,
     }
-  }).then(async post => {
-    try {
-      post.emailVerified = true
-      post.save()
-      let hmacRet
-      const user = await User.findOne({
-         where: {
-           email: post.email,
-         }
-      })
-      const hmac = crypto.createHmac('sha256', user.secret);
-      hmac.update(postUUID)
-      res.status(200).send(hmac.digest('hex'))
-    } catch (err) {
-      console.log(err.message)
-      res.status(500).send(err.message)
-    }
   })
+  try {
+    post.emailVerified = true
+    post.save()
+    const user = await User.findOne({
+        where: {
+          email: post.email,
+        }
+    })
+    const hmac = crypto.createHmac('sha256', user.secret);
+    hmac.update(postUUID)
+    res.status(200).send(hmac.digest('hex'))
+  } catch (err) {
+    console.log(err.message)
+    res.status(500).send(err.message)
+  }
 })
 
 //TODO: Should be DELETE not GET, change once we have a client to link to for deletion
 //Delete a single post, by private guid
 router.get('/d/:uuid', async (req, res) => {
   const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
-  Post.findOne({
+  let post = await Post.findOne({
     where: {
       guid: postUUID,
     }
-  }).then(post => {
-    try {
-      //TODO: Add validation from token
-      post.destroy()
-      res.sendStatus(200)
-    } catch (err) {
-      console.log(err.message)
-      res.status(500).send(err.message)
-    }
   })
+  try {
+    //TODO: Add validation from token
+    post.destroy()
+    res.sendStatus(200)
+  } catch (err) {
+    console.log(err.message)
+    res.status(500).send(err.message)
+  }
 })
 
 //Create a new post
