@@ -1,12 +1,13 @@
 const Router = require('express-promise-router')
 const sequelize = require('../db')
 const { sendPostValidationMessage }= require ('../mail')
-const { Op } = require("sequelize")
+const { Op } = require('sequelize')
 const Post = require('../models/post')
 const User = require('../models/user')
 const sanitizeHtml = require('sanitize-html')
 const validator = require('validator')
-const crypto = require("crypto")
+const crypto = require('crypto')
+const Cookies = require('universal-cookie') 
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -84,6 +85,34 @@ router.get('/sticky', async (req, res) => {
   res.json(posts)
 })
 
+//Get all sticky posts
+router.get('/mine', async (req, res) => {
+  const cookies = new Cookies(req.headers.cookie);
+  if (cookies.get('hmac') && cookies.get('challenge') && cookies.get('email')) {
+    const user = await User.findOne({
+      where: {
+         email: cookies.get('email'),
+      },
+    })
+    const hmac = crypto.createHmac('sha256', user.secret);
+    hmac.update(cookies.get('challenge'))
+    //challenge succeeds
+    if (hmac.digest('hex') === cookies.get('hmac')) {
+      const posts = await Post.findAll({
+        attributes: postAttributes,
+        where: {
+          email: cookies.get('email'),
+        }
+      })
+      res.json(posts)
+    } else {
+      res.sendStatus(401)
+    }
+  } else {
+    res.sendStatus(401)
+  }
+})
+
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
   const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null;
@@ -100,10 +129,8 @@ router.get('/:id', async (req, res) => {
   res.json(post)
 })
 
-
-//TODO: Should be PUT not GET, change once we have a client to link to for validation
 //Validate a single post, by private guid
-router.get('/v/:uuid', async (req, res) => {
+router.post('/v/:uuid', async (req, res) => {
   const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
   let post = await Post.findOne({
     where: {
@@ -111,6 +138,7 @@ router.get('/v/:uuid', async (req, res) => {
     }
   })
   try {
+    //TODO: Make sure email isn't already verified
     post.emailVerified = true
     post.save()
     const user = await User.findOne({
@@ -120,16 +148,16 @@ router.get('/v/:uuid', async (req, res) => {
     })
     const hmac = crypto.createHmac('sha256', user.secret);
     hmac.update(postUUID)
-    res.status(200).send(hmac.digest('hex'))
+    const returnObject = { post, hmac: hmac.digest('hex')}
+    res.status(200).send(returnObject)
   } catch (err) {
     console.log(err.message)
     res.status(500).send(err.message)
   }
 })
 
-//TODO: Should be DELETE not GET, change once we have a client to link to for deletion
 //Delete a single post, by private guid
-router.get('/d/:uuid', async (req, res) => {
+router.delete('/d/:uuid', async (req, res) => {
   const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null;
   let post = await Post.findOne({
     where: {

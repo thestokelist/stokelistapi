@@ -14,13 +14,13 @@ exports.sendPostValidationMessage = post => {
 
 You must click the link below in order to verify your email address:
         
-http://${process.env.HOSTNAME}/posts/v/${post.guid}
+${process.env.REACT_APP_URL}/post/v/${post.guid}
         
 10 minutes after that, you should see your post live.
         
         
-To DELETE your post at any time, please visit this link:
-http://${process.env.HOSTNAME}/posts/d/${post.guid}
+To manage your posts at any time, please visit this link:
+${process.env.REACT_APP_URL}/myposts
         
 Thanks, The Stoke List.`
 });

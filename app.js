@@ -4,6 +4,15 @@ const mountRoutes = require('./routes')
 const bodyParser = require('body-parser');
 const cors = require('cors')
 
+var corsOptions = {
+    //TODO: Be more restrictive with CORS
+    //Can't use credentials with a wildcard include, but can use this 'wildcard' origin function
+  origin: function (origin, callback) {
+      callback(null, true)
+  },
+  credentials: true
+}
+
 const port = process.env.PORT || 3010
 const app = express()
 
@@ -11,8 +20,7 @@ const app = express()
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-//Enable CORS from all domains for now
-app.use(cors())
+app.use(cors(corsOptions))
 
 mountRoutes(app)
 
