@@ -36,7 +36,7 @@ exports.sendLoginMessage = user => {
 
 You must click the link below in order to login to your account
 
-http://${process.env.HOSTNAME}/login/${user.loginToken}
+${process.env.REACT_APP_URL}/login/${user.loginToken}?email=${user.email}
 
 If you didn't request this email, we're sorry - you can just ignore it
         

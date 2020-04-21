@@ -12,9 +12,8 @@ module.exports = router
 
 
 //Triggers an email the send out a login link
-//TODO Move email to a body param
-router.post('/:email', async (req, res) => {
-  const email = validator.isEmail(req.params.email) ? req.params.email : null
+router.post('/', async (req, res) => {
+  const email = validator.isEmail(req.body.email) ? req.body.email : null
   if (email === null) {
     res.sendStatus(400)
     return
@@ -32,17 +31,18 @@ router.post('/:email', async (req, res) => {
 })
 
 
-//TODO: Move from GET to POST once integrated with UI
 //Validates a user login with magic token, clears that token, returns hmac for authentication
-router.get('/:uuid', async (req, res) => {
+router.post('/:uuid', async (req, res) => {
   const uuid = validator.isUUID(req.params.uuid) ? req.params.uuid : null
-  if (uuid === null) {
+  const email = (req.body.email && validator.isEmail(req.body.email)) ? req.body.email : null
+  if (uuid === null || email === null) {
     res.sendStatus(400)
     return
   }
   let user = await User.findOne({
     where: {
-      loginToken: uuid    
+      loginToken: uuid,
+      email: email    
     }
   })
     //TODO validate updated_at within last 24 hours
