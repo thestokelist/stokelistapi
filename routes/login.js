@@ -5,6 +5,7 @@ const { v4 } = require('uuid')
 const User = require('../models/user')
 const { sendLoginMessage } = require('../mail')
 const { createHmac } = require('../util/crypto')
+const { dateWithin24Hours } = require('../util/date')
 
 const router = new Router()
 module.exports = router
@@ -45,8 +46,8 @@ router.post('/:uuid', async (req, res) => {
             email: email,
         },
     })
-    //TODO validate updated_at within last 24 hours
-    if (user === null) {
+    console.log(user.toJSON())
+    if (user === null || !dateWithin24Hours(user.updated_at)) {
         console.log(`Error logging in user with login token ${uuid} and email ${email}`)
         return res.sendStatus(404)
     }
