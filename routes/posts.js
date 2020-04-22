@@ -6,7 +6,8 @@ const User = require('../models/user')
 const sanitizeHtml = require('sanitize-html')
 const validator = require('validator')
 
-const { getUserFromCookies } = require("../util/cookies")
+const { getUserFromCookies } = require('../util/cookies')
+const { createHmac } = require('../util/crypto')
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -36,8 +37,8 @@ const stokeListSanitize = (dirty) =>
 //Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
     //TODO: Only get description snippet, don't need whole thing
-    console.log("Loading latest posts")
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
+    console.log(`Loading latest posts with offset ${offset}`)
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
@@ -48,15 +49,17 @@ router.get('/', async (req, res) => {
         limit: 50,
         offset: offset,
     })
-    res.json(posts)
+    return res.json(posts)
 })
 
 //Get 50 posts that correspond to the search term, with optional offset
 router.get('/search', async (req, res) => {
     //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
-    console.log(`Running search for query term ${req.query.term}`)
     const query = '%' + req.query.term + '%'
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
+    console.log(
+        `Running search for query term ${req.query.term} with offset ${offset}`
+    )
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
@@ -74,12 +77,12 @@ router.get('/search', async (req, res) => {
         limit: 50,
         offset: offset,
     })
-    res.json(posts)
+    return res.json(posts)
 })
 
 //Get all sticky posts
 router.get('/sticky', async (req, res) => {
-    console.log("Loading sticky posts")
+    console.log('Loading sticky posts')
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
@@ -87,7 +90,7 @@ router.get('/sticky', async (req, res) => {
         },
         order: [['created_at', 'DESC']],
     })
-    res.json(posts)
+    return res.json(posts)
 })
 
 //Get all sticky posts
@@ -109,6 +112,7 @@ router.get('/mine', async (req, res) => {
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+    console.log(`Loading posts for id ${postID}`)
     const post = await Post.findOne({
         attributes: postAttributes.concat(['created_at']),
         where: {
@@ -117,41 +121,43 @@ router.get('/:id', async (req, res) => {
         },
         order: [['created_at', 'DESC']],
     })
-    res.json(post)
+    return res.json(post)
 })
 
 //Validate a single post, by private guid
 router.post('/v/:uuid', async (req, res) => {
     const postUUID = validator.isUUID(req.params.uuid) ? req.params.uuid : null
+    console.log(`Validating post with uuid ${postUUID}`)
     let post = await Post.findOne({
         where: {
             guid: postUUID,
         },
     })
-    try {
-        //TODO: Make sure email isn't already verified
+    if (post && post.emailVerified === false) {
         post.emailVerified = true
         post.save()
-        const user = await User.findOne({
+        //Handle any posts created in the old system, but not yet verified by
+        //doing a findOrCreate here
+        let [user] = await User.findOrCreate({
             where: {
                 email: post.email,
             },
         })
-        const hmac = crypto.createHmac('sha256', user.secret)
-        hmac.update(postUUID)
-        const returnObject = { post, hmac: hmac.digest('hex') }
-        res.status(200).send(returnObject)
-    } catch (err) {
-        console.log(err.message)
-        res.status(500).send(err.message)
+        const returnObject = { post, hmac: createHmac(user.secret, postUUID) }
+        console.log(`Validated post with uuid ${postUUID}`)
+        return res.status(200).send(returnObject)
+    } else {
+        console.log(`Unable to validate post with uuid ${postUUID}`)
+        return res.sendStatus(404)
     }
 })
 
 //Delete a single post, by private guid
 router.delete('/:id', async (req, res) => {
-  onsole.log(`Loading post with id ${req.params.id}`)
+    console.log(`Attempting to delete post with id ${req.params.id}`)
     let user = await getUserFromCookies(req.headers.cookie)
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+    //If logged in and post ID is a valid number
     if (user !== null && postID !== null) {
         let post = await Post.findOne({
             where: {
@@ -160,10 +166,14 @@ router.delete('/:id', async (req, res) => {
         })
         if (post && post.email === user.email) {
             await post.destroy()
+            console.log(`Delete post with id ${postID}`)
             return res.sendStatus(204)
         } else {
+            console.log(`Error deleting post with id ${postID}`)
             return res.sendStatus(401)
         }
+    } else {
+      return res.sendStatus(404)
     }
 })
 
@@ -179,10 +189,9 @@ router.post('/', async (req, res) => {
         exactLocation: req.body.exactLocation || null,
     })
     post.remoteIp =
-      req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        req.headers['x-forwarded-for'] || req.connection.remoteAddress
     await post.save()
     sendPostValidationMessage(post)
-    console.log(`New post saved and validation email sent`)
+    console.log(`New post saved and validation email sent to ${post.email}`)
     return res.sendStatus(200)
-
 })

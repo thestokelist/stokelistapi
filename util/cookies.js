@@ -1,6 +1,7 @@
 const Cookies = require('universal-cookie')
-const crypto = require('crypto')
 const User = require('../models/user')
+
+const { createHmac } = require('./crypto')
 
 async function getUserFromCookies(cookie) {
     const cookies = new Cookies(cookie)
@@ -13,9 +14,7 @@ async function getUserFromCookies(cookie) {
                 email: email,
             },
         })
-        const hmac = crypto.createHmac('sha256', user.secret)
-        hmac.update(challenge)
-        if (hmac.digest('hex') === challengeHmac) {
+        if (createHmac(user.secret,challenge) === challengeHmac) {
             console.log(`Authentication successful for ${email}`)
             return user
         } else {
