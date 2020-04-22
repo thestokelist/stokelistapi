@@ -22,7 +22,6 @@ router.post('/', async (req, res) => {
         },
     })
     user.loginToken = v4()
-    console.log(user)
     await user.save()
     sendLoginMessage(user)
     res.sendStatus(200)

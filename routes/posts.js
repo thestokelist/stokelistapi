@@ -1,13 +1,12 @@
 const Router = require('express-promise-router')
-const sequelize = require('../db')
 const { sendPostValidationMessage } = require('../mail')
 const { Op } = require('sequelize')
 const Post = require('../models/post')
 const User = require('../models/user')
 const sanitizeHtml = require('sanitize-html')
 const validator = require('validator')
-const crypto = require('crypto')
-const Cookies = require('universal-cookie')
+
+const { getUserFromCookies } = require("../util/cookies")
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -34,35 +33,10 @@ const stokeListSanitize = (dirty) =>
         },
     })
 
-async function getUserFromCookies(cookie) {
-    const cookies = new Cookies(cookie)
-    const email = cookies.get('email')
-    const challengeHmac = cookies.get('hmac')
-    const challenge = cookies.get('challenge')
-    try {
-        const user = await User.findOne({
-            where: {
-                email: email,
-            },
-        })
-        const hmac = crypto.createHmac('sha256', user.secret)
-        hmac.update(challenge)
-        if (hmac.digest('hex') === challengeHmac) {
-            console.log(`Authentication successful for ${email}`)
-            return user
-        } else {
-            console.log(`Authentication failed for ${email}`)
-            return null
-        }
-    } catch (e) {
-        console.log(`Error authenticating ${email}`)
-        return null
-    }
-}
-
 //Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
     //TODO: Only get description snippet, don't need whole thing
+    console.log("Loading latest posts")
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
     const posts = await Post.findAll({
         attributes: postAttributes,
@@ -80,6 +54,7 @@ router.get('/', async (req, res) => {
 //Get 50 posts that correspond to the search term, with optional offset
 router.get('/search', async (req, res) => {
     //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
+    console.log(`Running search for query term ${req.query.term}`)
     const query = '%' + req.query.term + '%'
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
     const posts = await Post.findAll({
@@ -104,6 +79,7 @@ router.get('/search', async (req, res) => {
 
 //Get all sticky posts
 router.get('/sticky', async (req, res) => {
+    console.log("Loading sticky posts")
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
@@ -120,6 +96,7 @@ router.get('/mine', async (req, res) => {
     if (user === null) {
         return res.sendStatus(401)
     }
+    console.log(`Loading posts for user ${user.email}`)
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
@@ -172,6 +149,7 @@ router.post('/v/:uuid', async (req, res) => {
 
 //Delete a single post, by private guid
 router.delete('/:id', async (req, res) => {
+  onsole.log(`Loading post with id ${req.params.id}`)
     let user = await getUserFromCookies(req.headers.cookie)
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
     if (user !== null && postID !== null) {
@@ -191,6 +169,7 @@ router.delete('/:id', async (req, res) => {
 
 //Create a new post
 router.post('/', async (req, res) => {
+    console.log(`Building new post`)
     const post = await Post.build({
         title: stokeListSanitize(req.body.title) || null,
         description: stokeListSanitize(req.body.description) || null,
@@ -200,14 +179,10 @@ router.post('/', async (req, res) => {
         exactLocation: req.body.exactLocation || null,
     })
     post.remoteIp =
-        req.headers['x-forwarded-for'] || req.connection.remoteAddress
-    try {
-        await post.save()
-        sendPostValidationMessage(post)
-        res.sendStatus(200)
-    } catch (err) {
-        console.log(err.message)
-        res.status(500).send(err.message)
-        return
-    }
+      req.headers['x-forwarded-for'] || req.connection.remoteAddress
+    await post.save()
+    sendPostValidationMessage(post)
+    console.log(`New post saved and validation email sent`)
+    return res.sendStatus(200)
+
 })
