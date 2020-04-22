@@ -9,5 +9,5 @@ module.exports = router
 router.post('/sync', async (req, res) => {
     Post.sync({ alter: true })
     User.sync({ alter: true })
-    res.sendStatus(200);
-  })
+    res.sendStatus(200)
+})

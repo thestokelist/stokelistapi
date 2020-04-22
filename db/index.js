@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize } = require('sequelize')
 const dotenv = require('dotenv')
 dotenv.config()
 
@@ -14,7 +14,7 @@ const sequelize = new Sequelize({
     ssl: ssl,
     native: ssl,
     dialectOptions: {
-        ssl: ssl ? undefined :  'require'
-    }
-  });
+        ssl: ssl ? undefined : 'require',
+    },
+})
 module.exports = sequelize
