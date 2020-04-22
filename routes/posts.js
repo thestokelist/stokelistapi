@@ -104,6 +104,7 @@ router.get('/mine', async (req, res) => {
         attributes: postAttributes,
         where: {
             email: user.email,
+            emailVerified: true
         },
     })
     return res.json(posts)
@@ -118,8 +119,7 @@ router.get('/:id', async (req, res) => {
         where: {
             id: postID,
             emailVerified: true,
-        },
-        order: [['created_at', 'DESC']],
+        }
     })
     return res.json(post)
 })
