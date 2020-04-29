@@ -18,8 +18,7 @@ it('Gets the GET / endpoint to fail', async done => {
 })
 
 afterAll(async (done) => {
-  //Need to stop equalize and express server otherwise Jest complains about async operations that weren't stopped
+  //Need to stop  sequelize server otherwise Jest complains about async operations that weren't stopped
   await sequelize.close()
-  await app.server.close()
   done();
 });

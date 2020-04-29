@@ -4,8 +4,8 @@
   "description": "Express API for Stoke List",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "start": "node start.js",
+    "dev": "nodemon start.js",
     "test": "jest"
   },
   "author": "Luke Norman",

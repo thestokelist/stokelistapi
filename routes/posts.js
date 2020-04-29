@@ -115,7 +115,7 @@ router.get('/sticky', async (req, res) => {
 router.get('/mine', async (req, res) => {
     let user = await getUserFromCookies(req.headers.cookie)
     if (user === null) {
-        return res.sendStatus(401)
+        return res.sendStatus(403)
     }
     console.log(`Loading posts for user ${user.email}`)
     const posts = await Post.findAll({
@@ -173,7 +173,7 @@ router.post('/v/:uuid', async (req, res) => {
 //Delete a single post, by id, with authentication
 router.delete('/:id', async (req, res) => {
     console.log(`Attempting to delete post with id ${req.params.id}`)
-    let user = await getUserFromCookies(req.headers.cookie)
+    const user = await getUserFromCookies(req.headers.cookie)
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
     //If logged in and post ID is a valid number
     if (user !== null && postID !== null) {
@@ -188,10 +188,10 @@ router.delete('/:id', async (req, res) => {
             return res.sendStatus(204)
         } else {
             console.log(`Error deleting post with id ${postID}`)
-            return res.sendStatus(401)
+            return res.sendStatus(403)
         }
     } else {
-      return res.sendStatus(404)
+      return res.sendStatus(403)
     }
 })
 
@@ -211,7 +211,13 @@ router.post('/', async (req, res) => {
     })
     post.remoteIp =
         req.headers['x-forwarded-for'] || req.connection.remoteAddress
-    await post.save()
+    try {
+        await post.validate()
+    } catch (e) {
+        console.log("New post validation failed")
+        return res.sendStatus(422)
+    }
+    post.save()
     sendPostValidationMessage(post)
     console.log(`New post saved and validation email sent to ${post.email}`)
     return res.sendStatus(200)
