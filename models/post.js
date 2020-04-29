@@ -29,8 +29,7 @@ Post.init(
             },
         },
         price: {
-            type: DataTypes.STRING,
-            allowNull: false,
+            type: DataTypes.STRING
         },
         location: { type: DataTypes.STRING },
         description: {
@@ -60,7 +59,25 @@ Post.init(
             field: 'email_verified',
         },
         remoteIp: { type: DataTypes.STRING, field: 'remote_ip' },
+        //New fields added 2020
         exactLocation: { type: DataTypes.GEOMETRY, field: 'exact_location' },
+        isGarageSale: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+            field: 'garage_sale',
+            allowNull: false,
+        },
+        //Ignored columns that appear not to be used/used anymore:
+        // price_in_cents, computed_tags, originating_country/region/lat_lng
+        // is_awesome, is_idiotic, tags
+        startTime: {
+            type: DataTypes.DATE,
+            field: 'start_time',
+        },
+        endTime: {
+            type: DataTypes.DATE,
+            field: 'end_time',
+        },
         //Ignored columns that appear not to be used/used anymore:
         // price_in_cents, computed_tags, originating_country/region/lat_lng
         // is_awesome, is_idiotic, tags

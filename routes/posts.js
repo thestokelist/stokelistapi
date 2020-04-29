@@ -23,6 +23,9 @@ const postAttributes = [
     'description',
     'photoFileSize',
     'exactLocation',
+    'isGarageSale',
+    'startTime',
+    'endTime',
 ]
 
 const stokeListSanitize = (dirty) =>
@@ -44,10 +47,25 @@ router.get('/', async (req, res) => {
         where: {
             sticky: false,
             emailVerified: true,
+            isGarageSale: false,
         },
         order: [['created_at', 'DESC']],
         limit: 50,
         offset: offset,
+    })
+    return res.json(posts)
+})
+
+//Returns all future garage sales
+router.get('/garage', async (req, res) => {
+    console.log(`Loading garage sales`)
+    const posts = await Post.findAll({
+        attributes: postAttributes,
+        where: {
+            emailVerified: true,
+            isGarageSale: true,
+            endTime: {[Op.gt] : new Date().toString()} 
+        }
     })
     return res.json(posts)
 })
@@ -93,7 +111,7 @@ router.get('/sticky', async (req, res) => {
     return res.json(posts)
 })
 
-//Get all sticky posts
+//Get all posts made by an authenticated user
 router.get('/mine', async (req, res) => {
     let user = await getUserFromCookies(req.headers.cookie)
     if (user === null) {
@@ -104,7 +122,7 @@ router.get('/mine', async (req, res) => {
         attributes: postAttributes,
         where: {
             email: user.email,
-            emailVerified: true
+            emailVerified: true,
         },
     })
     return res.json(posts)
@@ -152,7 +170,7 @@ router.post('/v/:uuid', async (req, res) => {
     }
 })
 
-//Delete a single post, by private guid
+//Delete a single post, by id, with authentication
 router.delete('/:id', async (req, res) => {
     console.log(`Attempting to delete post with id ${req.params.id}`)
     let user = await getUserFromCookies(req.headers.cookie)
@@ -181,12 +199,15 @@ router.delete('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     console.log(`Building new post`)
     const post = await Post.build({
-        title: stokeListSanitize(req.body.title) || null,
-        description: stokeListSanitize(req.body.description) || null,
-        price: stokeListSanitize(req.body.price) || null,
+        title: req.body.title ? stokeListSanitize(req.body.title) : null,
+        description: req.body.description ? stokeListSanitize(req.body.description) : null,
+        price: req.body.price ? stokeListSanitize(req.body.price) : null,
         email: req.body.email || null,
         location: req.body.location || null,
         exactLocation: req.body.exactLocation || null,
+        isGarageSale: req.body.isGarageSale || false,
+        startTime: req.body.startTime || null,
+        endTime: req.body.endTime || null,
     })
     post.remoteIp =
         req.headers['x-forwarded-for'] || req.connection.remoteAddress
