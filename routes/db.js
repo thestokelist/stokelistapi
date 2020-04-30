@@ -7,7 +7,7 @@ module.exports = router
 
 //TODO: Admin authentication needed here
 router.post('/sync', async (req, res) => {
-    Post.sync({ alter: true })
-    User.sync({ alter: true })
+    await Post.sync({ alter: true })
+    await User.sync({ alter: true })
     res.sendStatus(200)
 })

@@ -17,4 +17,6 @@ const sequelize = new Sequelize({
         ssl: ssl ? undefined : 'require',
     },
 })
+console.log('New postgres database connection initialized')
+
 module.exports = sequelize

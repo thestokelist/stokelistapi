@@ -64,7 +64,7 @@ router.get('/garage', async (req, res) => {
         where: {
             emailVerified: true,
             isGarageSale: true,
-            endTime: {[Op.gt] : new Date().toString()} 
+            endTime: {[Op.gt] : new Date().toISOString() } 
         }
     })
     return res.json(posts)
@@ -153,7 +153,7 @@ router.post('/v/:uuid', async (req, res) => {
     })
     if (post && post.emailVerified === false) {
         post.emailVerified = true
-        post.save()
+        await post.save()
         //Handle any posts created in the old system, but not yet verified by
         //doing a findOrCreate here
         let [user] = await User.findOrCreate({
@@ -217,7 +217,7 @@ router.post('/', async (req, res) => {
         console.log("New post validation failed")
         return res.sendStatus(422)
     }
-    post.save()
+    await post.save()
     sendPostValidationMessage(post)
     console.log(`New post saved and validation email sent to ${post.email}`)
     return res.sendStatus(200)
