@@ -1,7 +1,10 @@
-const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
 
-exports.createHmac = (secret,challenge) => {
-    const hmac = crypto.createHmac('sha256', secret)
-    hmac.update(challenge)
-    return hmac.digest('hex')
+exports.createToken = (email) => {
+    const payload = { email: email }
+    //Return 1 month auth token with user ID, same length as cookie expiration
+    const token = jwt.sign(payload, process.env.JWT_KEY, {
+        expiresIn: '30 days',
+    })
+    return token
 }

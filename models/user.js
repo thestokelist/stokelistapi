@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
+const { createToken } = require('../util/crypto')
 
 class User extends Model {}
 
@@ -28,15 +29,15 @@ User.init(
             defaultValue: false,
             field: 'is_admin',
         },
-        secret: {
-            type: DataTypes.UUID,
-            defaultValue: DataTypes.UUIDV4,
-            allowNull: false,
-        },
         loginToken: {
             type: DataTypes.UUID,
             allowNull: true,
             field: 'login_token',
+        },
+        tokenValidity: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: Sequelize.NOW,
         },
     },
     {
@@ -49,3 +50,17 @@ User.init(
 )
 
 module.exports = User
+
+User.prototype.generateToken = function () {
+    const token = createToken(this.email)
+    return token
+}
+
+User.prototype.toJSON = function () {
+    var values = Object.assign({}, this.get())
+    //Remove fields the client doesn't need from the JSON response
+    delete values.createdAt
+    delete values.deletedAt
+    delete values.tokenValidity
+    return values
+}

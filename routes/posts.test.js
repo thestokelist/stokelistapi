@@ -8,8 +8,6 @@ beforeAll(async (done) => {
     done()
 })
 
-
-
 //Smoke tests to make sure our testing framework runs and connects to our application
 it('Empty GET /posts works', async (done) => {
     const res = await request.get('/posts')
@@ -42,8 +40,8 @@ it('DELETE /posts fails 404', async (done) => {
     done()
 })
 
-it('DELETE /posts/1 with no authentication fails 403', async (done) => {
+it('DELETE /posts/1 with no authentication fails 401', async (done) => {
     const res = await request.delete('/posts/1')
-    await expect(res.status).toBe(403)
+    await expect(res.status).toBe(401)
     done()
 })

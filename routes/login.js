@@ -4,7 +4,6 @@ const { v4 } = require('uuid')
 
 const User = require('../models/user')
 const { sendLoginMessage } = require('../mail')
-const { createHmac } = require('../util/crypto')
 const { dateWithin24Hours } = require('../util/date')
 
 const router = new Router()
@@ -54,5 +53,5 @@ router.post('/:uuid', async (req, res) => {
     user.loginToken = null
     await user.save()
     console.log(`Succesfully logged in user with email ${email}`)
-    return res.status(200).send(createHmac(user.secret,uuid))
+    return res.status(200).send(user.generateToken())
 })

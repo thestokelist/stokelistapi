@@ -5,9 +5,7 @@ const Post = require('../models/post')
 const User = require('../models/user')
 const sanitizeHtml = require('sanitize-html')
 const validator = require('validator')
-
-const { getUserFromCookies } = require('../util/cookies')
-const { createHmac } = require('../util/crypto')
+const passport = require('passport')
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -64,8 +62,8 @@ router.get('/garage', async (req, res) => {
         where: {
             emailVerified: true,
             isGarageSale: true,
-            endTime: {[Op.gt] : new Date().toISOString() } 
-        }
+            endTime: { [Op.gt]: new Date().toISOString() },
+        },
     })
     return res.json(posts)
 })
@@ -112,21 +110,22 @@ router.get('/sticky', async (req, res) => {
 })
 
 //Get all posts made by an authenticated user
-router.get('/mine', async (req, res) => {
-    let user = await getUserFromCookies(req.headers.cookie)
-    if (user === null) {
-        return res.sendStatus(403)
+router.get(
+    '/mine',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        const userEmail = req.user.email
+        console.log(`Loading posts for user: ${userEmail}`)
+        const posts = await Post.findAll({
+            attributes: postAttributes,
+            where: {
+                email: userEmail,
+                emailVerified: true,
+            },
+        })
+        return res.json(posts)
     }
-    console.log(`Loading posts for user ${user.email}`)
-    const posts = await Post.findAll({
-        attributes: postAttributes,
-        where: {
-            email: user.email,
-            emailVerified: true,
-        },
-    })
-    return res.json(posts)
-})
+)
 
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
@@ -137,7 +136,7 @@ router.get('/:id', async (req, res) => {
         where: {
             id: postID,
             emailVerified: true,
-        }
+        },
     })
     return res.json(post)
 })
@@ -161,7 +160,7 @@ router.post('/v/:uuid', async (req, res) => {
                 email: post.email,
             },
         })
-        const returnObject = { post, hmac: createHmac(user.secret, postUUID) }
+        const returnObject = { post, token: user.generateToken() }
         console.log(`Validated post with uuid ${postUUID}`)
         return res.status(200).send(returnObject)
     } else {
@@ -171,36 +170,39 @@ router.post('/v/:uuid', async (req, res) => {
 })
 
 //Delete a single post, by id, with authentication
-router.delete('/:id', async (req, res) => {
-    console.log(`Attempting to delete post with id ${req.params.id}`)
-    const user = await getUserFromCookies(req.headers.cookie)
-    const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
-    //If logged in and post ID is a valid number
-    if (user !== null && postID !== null) {
-        let post = await Post.findOne({
-            where: {
-                id: postID,
-            },
-        })
-        if (post && post.email === user.email) {
-            await post.destroy()
-            console.log(`Delete post with id ${postID}`)
-            return res.sendStatus(204)
-        } else {
-            console.log(`Error deleting post with id ${postID}`)
-            return res.sendStatus(403)
+router.delete(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        console.log(`Attempting to delete post with id ${req.params.id}`)
+        const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+        //If logged in and post ID is a valid number
+        const userEmail = req.user.email
+        if (postID !== null) {
+            let post = await Post.findOne({
+                where: {
+                    id: postID,
+                },
+            })
+            if (post && post.email === userEmail) {
+                await post.destroy()
+                console.log(`Deleted post with id ${postID}`)
+                return res.sendStatus(204)
+            }
         }
-    } else {
-      return res.sendStatus(403)
+        console.log(`Error deleting post with id ${postID}`)
+        return res.sendStatus(403)
     }
-})
+)
 
 //Create a new post
 router.post('/', async (req, res) => {
     console.log(`Building new post`)
     const post = await Post.build({
         title: req.body.title ? stokeListSanitize(req.body.title) : null,
-        description: req.body.description ? stokeListSanitize(req.body.description) : null,
+        description: req.body.description
+            ? stokeListSanitize(req.body.description)
+            : null,
         price: req.body.price ? stokeListSanitize(req.body.price) : null,
         email: req.body.email || null,
         location: req.body.location || null,
@@ -214,7 +216,7 @@ router.post('/', async (req, res) => {
     try {
         await post.validate()
     } catch (e) {
-        console.log("New post validation failed")
+        console.log('New post validation failed')
         return res.sendStatus(422)
     }
     await post.save()
