@@ -59,7 +59,6 @@ User.prototype.generateToken = function () {
 User.prototype.toJSON = function () {
     var values = Object.assign({}, this.get())
     //Remove fields the client doesn't need from the JSON response
-    delete values.createdAt
     delete values.deletedAt
     delete values.tokenValidity
     return values

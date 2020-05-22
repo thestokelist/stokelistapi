@@ -24,6 +24,7 @@ const postAttributes = [
     'isGarageSale',
     'startTime',
     'endTime',
+    'created_at'
 ]
 
 const stokeListSanitize = (dirty) =>
@@ -45,7 +46,6 @@ router.get('/', async (req, res) => {
         where: {
             sticky: false,
             emailVerified: true,
-            isGarageSale: false,
         },
         order: [['created_at', 'DESC']],
         limit: 50,
@@ -132,7 +132,7 @@ router.get('/:id', async (req, res) => {
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
     console.log(`Loading posts for id ${postID}`)
     const post = await Post.findOne({
-        attributes: postAttributes.concat(['created_at']),
+        attributes: postAttributes,
         where: {
             id: postID,
             emailVerified: true,
