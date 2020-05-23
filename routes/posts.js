@@ -24,7 +24,7 @@ const postAttributes = [
     'isGarageSale',
     'startTime',
     'endTime',
-    'created_at'
+    'created_at',
 ]
 
 const stokeListSanitize = (dirty) =>
@@ -122,6 +122,7 @@ router.get(
                 email: userEmail,
                 emailVerified: true,
             },
+            order: [['created_at', 'DESC']],
         })
         return res.json(posts)
     }
@@ -179,11 +180,7 @@ router.delete(
         //If logged in and post ID is a valid number
         const userEmail = req.user.email
         if (postID !== null) {
-            let post = await Post.findOne({
-                where: {
-                    id: postID,
-                },
-            })
+            let post = await Post.findByPk(postID)
             if (post && post.email === userEmail) {
                 await post.destroy()
                 console.log(`Deleted post with id ${postID}`)
@@ -191,6 +188,70 @@ router.delete(
             }
         }
         console.log(`Error deleting post with id ${postID}`)
+        return res.sendStatus(403)
+    }
+)
+
+//Undelete a single post, by id, with authentication
+//Not entirely RESTful, using PATCH here
+router.patch(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        console.log(`Attempting to delete post with id ${req.params.id}`)
+        const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+        //If logged in and post ID is a valid number
+        const userEmail = req.user.email
+        if (postID !== null) {
+            let post = await Post.findByPk(postID, { paranoid: false })
+            if (post && post.email === userEmail) {
+                await post.restore()
+                console.log(`Undeleted post with id ${postID}`)
+                return res.sendStatus(204)
+            }
+        }
+        console.log(`Error undeleting post with id ${postID}`)
+        return res.sendStatus(403)
+    }
+)
+
+//Update a single post, by id, with authentication
+router.put(
+    '/:id',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        console.log(`Attempting to update post with id ${req.params.id}`)
+        const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+        if (postID !== null) {
+            let post = await Post.findByPk(postID)
+            const userEmail = req.user.email
+            if (post && post.email === userEmail) {
+                post.title = req.body.title
+                    ? stokeListSanitize(req.body.title)
+                    : null
+                post.description = req.body.description
+                    ? stokeListSanitize(req.body.description)
+                    : null
+                post.price = req.body.price
+                    ? stokeListSanitize(req.body.price)
+                    : null
+                post.location = req.body.location || null
+                post.exactLocation = req.body.exactLocation || null
+                post.isGarageSale = req.body.isGarageSale || false
+                post.startTime = req.body.startTime || null
+                post.endTime = req.body.endTime || null
+                try {
+                    await post.validate()
+                } catch (e) {
+                    console.log('New post validation failed')
+                    return res.sendStatus(422)
+                }
+                await post.save()
+                console.log(`Updated post with id ${postID}`)
+                return res.json(post)
+            }
+        }
+        console.log(`Error updating post with id ${postID}`)
         return res.sendStatus(403)
     }
 )
