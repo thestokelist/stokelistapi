@@ -5,6 +5,10 @@ const Post = require('../models/post')
 const User = require('../models/user')
 const validator = require('validator')
 const passport = require('passport')
+const Recaptcha = require('express-recaptcha').RecaptchaV3
+const dotenv = require('dotenv')
+dotenv.config()
+const recaptcha = new Recaptcha(process.env.CAPTCHA_KEY, process.env.CAPTCHA_SECRET)
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -26,26 +30,25 @@ const postAttributes = [
     'created_at',
 ]
 
-const trimPostDescriptions = postsToTrim => {
+const trimPostDescriptions = (postsToTrim) => {
     let trimmedPosts = []
     for (const post of postsToTrim) {
         const postJSON = post.toJSON()
         if (postJSON.description.length > 143) {
-            let words = postJSON.description.split(" ")
+            let words = postJSON.description.split(' ')
             let trimmedDescription = ''
             for (const word of words) {
-                trimmedDescription += word+" "
+                trimmedDescription += word + ' '
                 if (trimmedDescription.length > 140) {
                     trimmedDescription += '...'
-                    break;
+                    break
                 }
             }
-            postJSON.description = trimmedDescription.replace(/\r?\n|\r/g,"  ")
+            postJSON.description = trimmedDescription.replace(/\r?\n|\r/g, '  ')
         }
         trimmedPosts.push(postJSON)
     }
     return trimmedPosts
-
 }
 
 //Get 50 latests posts, with optional offset
@@ -263,29 +266,40 @@ router.put(
 )
 
 //Create a new post
-router.post('/', async (req, res) => {
+router.post('/', recaptcha.middleware.verify, async (req, res) => {
     console.log(`Building new post`)
-    const post = await Post.build({
-        title: req.body.title || null,
-        description: req.body.description || null,
-        price: req.body.price || null,
-        email: req.body.email || null,
-        location: req.body.location || null,
-        exactLocation: req.body.exactLocation || null,
-        isGarageSale: req.body.isGarageSale || false,
-        startTime: req.body.startTime || null,
-        endTime: req.body.endTime || null,
-    })
-    post.remoteIp =
-        req.headers['x-forwarded-for'] || req.connection.remoteAddress
-    try {
-        await post.validate()
-    } catch (e) {
-        console.log('New post validation failed')
+    const recaptcha = req.recaptcha
+    const passingScore = parseFloat(process.env.CAPTCHA_SCORE) || 0.5
+    if (!recaptcha.error && recaptcha.data.action === "post" && recaptcha.data.score > passingScore) {
+        console.log('Valid captcha token')
+        console.log(req.recaptcha)
+        const post = await Post.build({
+            title: req.body.title || null,
+            description: req.body.description || null,
+            price: req.body.price || null,
+            email: req.body.email || null,
+            location: req.body.location || null,
+            exactLocation: req.body.exactLocation || null,
+            isGarageSale: req.body.isGarageSale || false,
+            startTime: req.body.startTime || null,
+            endTime: req.body.endTime || null,
+        })
+        post.remoteIp =
+            req.headers['x-forwarded-for'] || req.connection.remoteAddress
+        try {
+            await post.validate()
+        } catch (e) {
+            console.log('New post validation failed')
+            return res.sendStatus(422)
+        }
+        await post.save()
+        sendPostValidationMessage(post)
+        console.log(`New post saved and validation email sent to ${post.email}`)
+        return res.sendStatus(200)
+    } else {
+        //Throw invalid response if captcha auth fails
+        console.log('Invalid captcha token')
+        console.log(req.recaptcha)
         return res.sendStatus(422)
     }
-    await post.save()
-    sendPostValidationMessage(post)
-    console.log(`New post saved and validation email sent to ${post.email}`)
-    return res.sendStatus(200)
 })

@@ -16,6 +16,7 @@
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "express-promise-router": "^3.0.3",
+    "express-recaptcha": "^5.0.1",
     "fuzzer": "^0.2.1",
     "helmet": "^3.22.0",
     "jsonwebtoken": "^8.5.1",
