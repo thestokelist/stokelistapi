@@ -1,6 +1,8 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
 const User = require('./user')
+const TurndownService = require('turndown')
+const turndownService = new TurndownService()
 
 class Post extends Model {}
 
@@ -29,13 +31,29 @@ Post.init(
             },
         },
         price: {
-            type: DataTypes.STRING
+            type: DataTypes.STRING,
         },
         location: { type: DataTypes.STRING },
         description: {
             type: DataTypes.TEXT,
             allowNull: false,
             isntTooYellyWithTheCaps: isntTooYellyWithTheCaps,
+            get() {
+                //Previous API allowed HTML. We no longer officially support HTML,
+                //but do best effort to convert to markdown if we find it
+                const tags = ['<b>', '<br', '<hr', '<i>', '<p>']
+                const rawValue = this.getDataValue('description')
+                let containsHTML = false
+                for (let tag of tags) {
+                    if (rawValue.search(tag) !== -1) {
+                        containsHTML = true
+                        break
+                    }
+                }
+                return containsHTML
+                    ? turndownService.turndown(rawValue)
+                    : rawValue
+            },
         },
         email: {
             type: DataTypes.STRING,

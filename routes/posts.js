@@ -3,7 +3,6 @@ const { sendPostValidationMessage } = require('../mail')
 const { Op } = require('sequelize')
 const Post = require('../models/post')
 const User = require('../models/user')
-const sanitizeHtml = require('sanitize-html')
 const validator = require('validator')
 const passport = require('passport')
 
@@ -26,15 +25,6 @@ const postAttributes = [
     'endTime',
     'created_at',
 ]
-
-const stokeListSanitize = (dirty) =>
-    sanitizeHtml(dirty, {
-        allowedTags: ['b', 'i', 'p', 'br', 'a', 'img'],
-        allowedAttributes: {
-            a: ['href'],
-            img: ['src', 'alt'],
-        },
-    })
 
 //Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
@@ -226,15 +216,9 @@ router.put(
             let post = await Post.findByPk(postID)
             const userEmail = req.user.email
             if (post && post.email === userEmail) {
-                post.title = req.body.title
-                    ? stokeListSanitize(req.body.title)
-                    : null
-                post.description = req.body.description
-                    ? stokeListSanitize(req.body.description)
-                    : null
-                post.price = req.body.price
-                    ? stokeListSanitize(req.body.price)
-                    : null
+                post.title = req.body.title || null
+                post.description = req.body.description || null
+                post.price = req.body.price || null
                 post.location = req.body.location || null
                 post.exactLocation = req.body.exactLocation || null
                 post.isGarageSale = req.body.isGarageSale || false
@@ -260,11 +244,9 @@ router.put(
 router.post('/', async (req, res) => {
     console.log(`Building new post`)
     const post = await Post.build({
-        title: req.body.title ? stokeListSanitize(req.body.title) : null,
-        description: req.body.description
-            ? stokeListSanitize(req.body.description)
-            : null,
-        price: req.body.price ? stokeListSanitize(req.body.price) : null,
+        title: req.body.title || null,
+        description: req.body.description || null,
+        price: req.body.price || null,
         email: req.body.email || null,
         location: req.body.location || null,
         exactLocation: req.body.exactLocation || null,
