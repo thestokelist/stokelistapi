@@ -26,6 +26,28 @@ const postAttributes = [
     'created_at',
 ]
 
+const trimPostDescriptions = postsToTrim => {
+    let trimmedPosts = []
+    for (const post of postsToTrim) {
+        const postJSON = post.toJSON()
+        if (postJSON.description.length > 143) {
+            let words = postJSON.description.split(" ")
+            let trimmedDescription = ''
+            for (const word of words) {
+                trimmedDescription += word+" "
+                if (trimmedDescription.length > 140) {
+                    trimmedDescription += '...'
+                    break;
+                }
+            }
+            postJSON.description = trimmedDescription.replace(/\r?\n|\r/g,"  ")
+        }
+        trimmedPosts.push(postJSON)
+    }
+    return trimmedPosts
+
+}
+
 //Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
     //TODO: Only get description snippet, don't need whole thing
@@ -41,7 +63,7 @@ router.get('/', async (req, res) => {
         limit: 50,
         offset: offset,
     })
-    return res.json(posts)
+    return res.json(trimPostDescriptions(posts))
 })
 
 //Returns all future garage sales
@@ -55,7 +77,7 @@ router.get('/garage', async (req, res) => {
             endTime: { [Op.gt]: new Date().toISOString() },
         },
     })
-    return res.json(posts)
+    return res.json(trimPostDescriptions(posts))
 })
 
 //Get 50 posts that correspond to the search term, with optional offset
@@ -83,7 +105,7 @@ router.get('/search', async (req, res) => {
         limit: 50,
         offset: offset,
     })
-    return res.json(posts)
+    return res.json(trimPostDescriptions(posts))
 })
 
 //Get all sticky posts
@@ -96,7 +118,7 @@ router.get('/sticky', async (req, res) => {
         },
         order: [['created_at', 'DESC']],
     })
-    return res.json(posts)
+    return res.json(trimPostDescriptions(posts))
 })
 
 //Get all posts made by an authenticated user
@@ -114,7 +136,7 @@ router.get(
             },
             order: [['created_at', 'DESC']],
         })
-        return res.json(posts)
+        return res.json(trimPostDescriptions(posts))
     }
 )
 

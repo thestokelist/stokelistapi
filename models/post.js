@@ -41,7 +41,7 @@ Post.init(
             get() {
                 //Previous API allowed HTML. We no longer officially support HTML,
                 //but do best effort to convert to markdown if we find it
-                const tags = ['<b>', '<br', '<hr', '<i>', '<p>']
+                const tags = ['<a href','<b>', '<br', '<hr', '<i>', '<p>']
                 const rawValue = this.getDataValue('description')
                 let containsHTML = false
                 for (let tag of tags) {
