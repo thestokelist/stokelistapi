@@ -1,6 +1,7 @@
 const { Sequelize, DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
 const { createToken } = require('../util/crypto')
+const Post = require('./post')
 
 class User extends Model {}
 
@@ -49,10 +50,8 @@ User.init(
     }
 )
 
-module.exports = User
-
 User.prototype.generateToken = function () {
-    const token = createToken(this.email)
+    const token = createToken(this.email,this.isAdmin)
     return token
 }
 
@@ -63,3 +62,5 @@ User.prototype.toJSON = function () {
     delete values.tokenValidity
     return values
 }
+
+module.exports = User

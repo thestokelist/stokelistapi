@@ -61,6 +61,7 @@ router.get('/', async (req, res) => {
         where: {
             sticky: false,
             emailVerified: true,
+            moderated: false,
         },
         order: [['created_at', 'DESC']],
         limit: 50,
@@ -78,6 +79,7 @@ router.get('/garage', async (req, res) => {
             emailVerified: true,
             isGarageSale: true,
             endTime: { [Op.gt]: new Date().toISOString() },
+            moderated: false
         },
     })
     return res.json(trimPostDescriptions(posts))
@@ -103,6 +105,7 @@ router.get('/search', async (req, res) => {
                 },
             },
             emailVerified: true,
+            moderated: false,
         },
         order: [['created_at', 'DESC']],
         limit: 50,
@@ -143,6 +146,27 @@ router.get(
     }
 )
 
+//Get all posts in the moderation queue, admin authenticated
+router.get(
+    '/moderate',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        if (req.user.isAdmin === true) {
+            //TOOD: Get all posts that have a report against them
+            const posts = await Post.findAll({
+                attributes: postAttributes,
+                where: {
+                    moderated: true,
+                },
+                order: [['created_at', 'DESC']],
+            })
+            return res.json(posts)
+        } else {
+            res.sendStatue(401)
+        }
+    }
+)
+
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
@@ -152,6 +176,7 @@ router.get('/:id', async (req, res) => {
         where: {
             id: postID,
             emailVerified: true,
+            moderated: false,
         },
     })
     return res.json(post)
@@ -168,7 +193,6 @@ router.post('/v/:uuid', async (req, res) => {
     })
     if (post && post.emailVerified === false) {
         post.emailVerified = true
-        await post.save()
         //Handle any posts created in the old system, but not yet verified by
         //doing a findOrCreate here
         let [user] = await User.findOrCreate({
@@ -176,6 +200,15 @@ router.post('/v/:uuid', async (req, res) => {
                 email: post.email,
             },
         })
+        const postCount = await Post.count({ where: { email: post.email } })
+        const moderatedPosts = await Post.count({ where: { email: post.email, moderated: true } })
+        if (postCount === 1 || moderatedPosts > 0) {
+            //If this is the first post a user is validating
+            //or if any of their other posts are moderated
+            //then moderate this post
+            post.moderated = true
+        }
+        await post.save()
         const returnObject = { post, token: user.generateToken() }
         console.log(`Validated post with uuid ${postUUID}`)
         return res.status(200).send(returnObject)

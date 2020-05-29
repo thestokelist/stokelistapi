@@ -27,7 +27,7 @@ exports.getPostFuzzer = () => {
         title: 'Test',
         description: 'Description',
         price: '150',
-        email: 'lukenorman@gmail.com',
+        email: 'foo@bar.com',
     }
     fuzzer.seed(1000)
     const fuzzGen = fuzzer.mutate.object(originalInput)

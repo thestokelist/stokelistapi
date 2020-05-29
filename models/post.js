@@ -4,8 +4,6 @@ const User = require('./user')
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
 
-class Post extends Model {}
-
 const isntTooYellyWithTheCaps = (string) => {
     const upperCaseCount = string.replace(/[^A-Z]/g, '').length
     const lowerCaseCount = string.replace(/[^a-z]/g, '').length
@@ -13,6 +11,8 @@ const isntTooYellyWithTheCaps = (string) => {
         throw new Error(`You're yelling`)
     }
 }
+
+class Post extends Model {}
 
 Post.init(
     {
@@ -83,6 +83,11 @@ Post.init(
             type: DataTypes.BOOLEAN,
             defaultValue: false,
             field: 'garage_sale',
+            allowNull: false,
+        },
+        moderated: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
             allowNull: false,
         },
         //Ignored columns that appear not to be used/used anymore:
