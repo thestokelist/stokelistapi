@@ -3,12 +3,16 @@ const { sendPostValidationMessage } = require('../mail')
 const { Op } = require('sequelize')
 const Post = require('../models/post')
 const User = require('../models/user')
+const Report = require('../models/report')
 const validator = require('validator')
 const passport = require('passport')
 const Recaptcha = require('express-recaptcha').RecaptchaV3
 const dotenv = require('dotenv')
 dotenv.config()
-const recaptcha = new Recaptcha(process.env.CAPTCHA_KEY, process.env.CAPTCHA_SECRET)
+const recaptcha = new Recaptcha(
+    process.env.CAPTCHA_KEY,
+    process.env.CAPTCHA_SECRET
+)
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -53,7 +57,6 @@ const trimPostDescriptions = (postsToTrim) => {
 
 //Get 50 latests posts, with optional offset
 router.get('/', async (req, res) => {
-    //TODO: Only get description snippet, don't need whole thing
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
     console.log(`Loading latest posts with offset ${offset}`)
     const posts = await Post.findAll({
@@ -79,7 +82,7 @@ router.get('/garage', async (req, res) => {
             emailVerified: true,
             isGarageSale: true,
             endTime: { [Op.gt]: new Date().toISOString() },
-            moderated: false
+            moderated: false,
         },
     })
     return res.json(trimPostDescriptions(posts))
@@ -87,7 +90,6 @@ router.get('/garage', async (req, res) => {
 
 //Get 50 posts that correspond to the search term, with optional offset
 router.get('/search', async (req, res) => {
-    //TODO: Sequelize should sanitize this for basic attacks, is there more to do here?
     const query = '%' + req.query.term + '%'
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
     console.log(
@@ -152,17 +154,35 @@ router.get(
     passport.authenticate('jwt', { session: false }),
     async (req, res) => {
         if (req.user.isAdmin === true) {
-            //TOOD: Get all posts that have a report against them
-            const posts = await Post.findAll({
+            const moderatedPosts = await Post.findAll({
                 attributes: postAttributes,
                 where: {
                     moderated: true,
                 },
+                include: [
+                    {
+                        model: Report,
+                    },
+                ],
                 order: [['created_at', 'DESC']],
             })
-            return res.json(posts)
+            const reportedPosts = await Post.findAll({
+                attributes: postAttributes,
+                where: {
+                    moderated: false,
+                },
+                include: [
+                    {
+                        model: Report,
+                        required: true,
+                    },
+                ],
+                order: [['created_at', 'DESC']],
+            })
+            const allModeratedPosts = moderatedPosts.concat(reportedPosts)
+            return res.json(allModeratedPosts)
         } else {
-            res.sendStatue(401)
+            res.sendStatus(403)
         }
     }
 )
@@ -201,7 +221,9 @@ router.post('/v/:uuid', async (req, res) => {
             },
         })
         const postCount = await Post.count({ where: { email: post.email } })
-        const moderatedPosts = await Post.count({ where: { email: post.email, moderated: true } })
+        const moderatedPosts = await Post.count({
+            where: { email: post.email, moderated: true },
+        })
         if (postCount === 1 || moderatedPosts > 0) {
             //If this is the first post a user is validating
             //or if any of their other posts are moderated
@@ -226,10 +248,9 @@ router.delete(
         console.log(`Attempting to delete post with id ${req.params.id}`)
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         //If logged in and post ID is a valid number
-        const userEmail = req.user.email
         if (postID !== null) {
             let post = await Post.findByPk(postID)
-            if (post && post.email === userEmail) {
+            if (post.hasPermissions(req.user)) {
                 await post.destroy()
                 console.log(`Deleted post with id ${postID}`)
                 return res.sendStatus(204)
@@ -298,12 +319,38 @@ router.put(
     }
 )
 
+//Approve a single post from the mod queue, admin authenticated
+router.put(
+    '/:id/approve',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+        console.log(`Approving post with id ${postID}`)
+        if (postID && req.user.isAdmin === true) {
+            let post = await Post.findByPk(postID)
+            //Set the post as no longer moderated, delete any associated reports
+            post.moderated = false
+            await Report.destroy({ where: { postId: post.id } })
+            await post.save()
+            console.log(`Approved post with id ${postID}`)
+            return res.sendStatus(204)
+        }
+        console.log(`Unable to approve post with id ${postID}`)
+        return res.sendStatus(403)
+    }
+)
+
 //Create a new post
 router.post('/', recaptcha.middleware.verify, async (req, res) => {
     console.log(`Building new post`)
     const recaptcha = req.recaptcha
     const passingScore = parseFloat(process.env.CAPTCHA_SCORE) || 0.5
-    if (!recaptcha.error && recaptcha.data.action === "post" && recaptcha.data.score > passingScore) {
+    //Check that the captcha passed in meets our requirements
+    if (
+        !recaptcha.error &&
+        recaptcha.data.action === 'post' &&
+        recaptcha.data.score > passingScore
+    ) {
         console.log('Valid captcha token')
         console.log(req.recaptcha)
         const post = await Post.build({
@@ -316,9 +363,8 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
             isGarageSale: req.body.isGarageSale || false,
             startTime: req.body.startTime || null,
             endTime: req.body.endTime || null,
+            remoteIp: req.ip,
         })
-        post.remoteIp =
-            req.headers['x-forwarded-for'] || req.connection.remoteAddress
         try {
             await post.validate()
         } catch (e) {
@@ -335,4 +381,65 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
         console.log(req.recaptcha)
         return res.sendStatus(422)
     }
+})
+
+//Report a post
+router.post('/:id/report', async (req, res) => {
+    console.log(`Creating new post report`)
+    const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
+    if (postID !== null) {
+        let post = await Post.findByPk(postID)
+        if (post !== null) {
+            const existingReports = await Report.findAll({
+                where: { postId: postID },
+                paranoid: false,
+            })
+            //Check if someone has already reported this post using this IP
+            //Or if the post was previously reported, and moderatir approved
+            let reportExists = false
+            let deletedReports = false
+            for (let report of existingReports) {
+                if (report.remoteIp === req.ip) {
+                    reportExists = true
+                }
+                if (report.deletedAt !== null) {
+                    deletedReports = true
+                }
+            }
+            if (reportExists || deletedReports) {
+                console.log("Skipping report creation")
+                //No need to do anything - if the report exists from this IP, we don't need to create it
+                //and if there are deleted reports for this post, it's already been approved
+            } else {
+                const report = await Report.build({
+                    reason: req.body.reason || null,
+                    comment: req.body.comment || null,
+                    remoteIp: req.ip,
+                    postId: postID,
+                })
+                try {
+                    console.log('Validating new report')
+                    await report.validate()
+                } catch (e) {
+                    console.log('New report validation failed')
+                    return res.sendStatus(422)
+                }
+                await report.save()
+                console.log('New report created')
+                const reportCount = await Report.count({
+                    where: { postId: postID },
+                })
+                console.log(
+                    `Total number of reports for this post is ${reportCount}`
+                )
+                if (reportCount >= 1) {
+                    post.moderated = true
+                    await post.save()
+                }
+            }
+            //Whether we actually created a report or not, say we did
+            return res.sendStatus(204)
+        }
+    }
+    return res.sendStatus(404)
 })

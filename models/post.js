@@ -1,6 +1,7 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
 const User = require('./user')
+const Report = require('./report')
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
 
@@ -41,7 +42,7 @@ Post.init(
             get() {
                 //Previous API allowed HTML. We no longer officially support HTML,
                 //but do best effort to convert to markdown if we find it
-                const tags = ['<a href','<b>', '<br', '<hr', '<i>', '<p>']
+                const tags = ['<a href', '<b>', '<br', '<hr', '<i>', '<p>']
                 const rawValue = this.getDataValue('description')
                 let containsHTML = false
                 for (let tag of tags) {
@@ -123,5 +124,18 @@ Post.afterCreate(async (post, options) => {
         },
     })
 })
+
+Post.prototype.hasPermissions = (user) => {
+    //If a post is moderated, only admins can act on it
+    let hasPermission = user.isAdmin === true
+    if (!this.moderated) {
+        //Otherwise admins or the user can act on it
+        hasPermission = hasPermission || this.email === user.email
+    }
+    return hasPermission
+}
+
+//foreign key constraints
+Post.hasMany(Report, { foreignKey: 'postId', allowNull: false })
 
 module.exports = Post

@@ -13,7 +13,7 @@ beforeAll(async (done) => {
 
 it('Fuzzes POST /posts', async (done) => {
     let successes = 0
-    const runs = 1000
+    const runs = 1
     for (let i = 0; i<runs; i++) {
         const fuzz = fuzzGen()
         const res = await request
@@ -33,5 +33,5 @@ it('Fuzzes POST /posts', async (done) => {
     console.log(`${successes} successful runs out of ${runs}`)
     done()
     //Long timeout because lots of runs!
-}, 20000)
+}, 30000)
 

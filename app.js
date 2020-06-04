@@ -33,6 +33,9 @@ app.use(helmet())
 passport.use(strategy);
 app.use(passport.initialize());
 
+//This makes sure express gives us a real IP address
+app.enable('trust proxy');
+
 mountRoutes(app)
 
 //TODO: Some rate limiting? Perhaps just for login/validation
