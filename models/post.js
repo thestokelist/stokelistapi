@@ -136,6 +136,6 @@ Post.prototype.hasPermissions = (user) => {
 }
 
 //foreign key constraints
-Post.hasMany(Report, { foreignKey: 'postId', allowNull: false })
+Post.hasMany(Report, { foreignKey: 'postId', allowNull: false, as: 'reports' })
 
 module.exports = Post

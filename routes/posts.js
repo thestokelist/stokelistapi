@@ -162,6 +162,7 @@ router.get(
                 include: [
                     {
                         model: Report,
+                        as: 'reports'
                     },
                 ],
                 order: [['created_at', 'DESC']],
@@ -175,11 +176,13 @@ router.get(
                     {
                         model: Report,
                         required: true,
+                        as: 'reports'
                     },
                 ],
                 order: [['created_at', 'DESC']],
             })
             const allModeratedPosts = moderatedPosts.concat(reportedPosts)
+            console.log(`Returning ${allModeratedPosts.length} moderated posts`)
             return res.json(allModeratedPosts)
         } else {
             res.sendStatus(403)
@@ -327,13 +330,19 @@ router.put(
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         console.log(`Approving post with id ${postID}`)
         if (postID && req.user.isAdmin === true) {
-            let post = await Post.findByPk(postID)
-            //Set the post as no longer moderated, delete any associated reports
-            post.moderated = false
-            await Report.destroy({ where: { postId: post.id } })
-            await post.save()
-            console.log(`Approved post with id ${postID}`)
-            return res.sendStatus(204)
+            let post = await Post.findByPk(postID, { paranoid: false })
+            if (post !== null) {
+                //Set the post as no longer moderated, delete any associated reports
+                await Report.destroy({ where: { postId: post.id } })
+                //Restore a post if it was previously deleted
+                if (post.deletedAt !== null) {
+                    await post.restore()
+                }
+                post.moderated = false
+                await post.save()
+                console.log(`Approved post with id ${postID}`)
+                return res.sendStatus(204)
+            }
         }
         console.log(`Unable to approve post with id ${postID}`)
         return res.sendStatus(403)
@@ -407,7 +416,7 @@ router.post('/:id/report', async (req, res) => {
                 }
             }
             if (reportExists || deletedReports) {
-                console.log("Skipping report creation")
+                console.log('Skipping report creation')
                 //No need to do anything - if the report exists from this IP, we don't need to create it
                 //and if there are deleted reports for this post, it's already been approved
             } else {
