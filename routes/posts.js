@@ -83,6 +83,9 @@ router.get('/garage', async (req, res) => {
             isGarageSale: true,
             endTime: { [Op.gt]: new Date().toISOString() },
             moderated: false,
+            exactLocation: {
+                [Op.ne]: null
+              }
         },
     })
     return res.json(trimPostDescriptions(posts))
