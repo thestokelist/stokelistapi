@@ -148,48 +148,6 @@ router.get(
     }
 )
 
-//Get all posts in the moderation queue, admin authenticated
-router.get(
-    '/moderate',
-    passport.authenticate('jwt', { session: false }),
-    async (req, res) => {
-        if (req.user.isAdmin === true) {
-            const moderatedPosts = await Post.findAll({
-                attributes: postAttributes,
-                where: {
-                    moderated: true,
-                },
-                include: [
-                    {
-                        model: Report,
-                        as: 'reports'
-                    },
-                ],
-                order: [['created_at', 'DESC']],
-            })
-            const reportedPosts = await Post.findAll({
-                attributes: postAttributes,
-                where: {
-                    moderated: false,
-                },
-                include: [
-                    {
-                        model: Report,
-                        required: true,
-                        as: 'reports'
-                    },
-                ],
-                order: [['created_at', 'DESC']],
-            })
-            const allModeratedPosts = moderatedPosts.concat(reportedPosts)
-            console.log(`Returning ${allModeratedPosts.length} moderated posts`)
-            return res.json(allModeratedPosts)
-        } else {
-            res.sendStatus(403)
-        }
-    }
-)
-
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
@@ -322,33 +280,6 @@ router.put(
     }
 )
 
-//Approve a single post from the mod queue, admin authenticated
-router.put(
-    '/:id/approve',
-    passport.authenticate('jwt', { session: false }),
-    async (req, res) => {
-        const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
-        console.log(`Approving post with id ${postID}`)
-        if (postID && req.user.isAdmin === true) {
-            let post = await Post.findByPk(postID, { paranoid: false })
-            if (post !== null) {
-                //Set the post as no longer moderated, delete any associated reports
-                await Report.destroy({ where: { postId: post.id } })
-                //Restore a post if it was previously deleted
-                if (post.deletedAt !== null) {
-                    await post.restore()
-                }
-                post.moderated = false
-                await post.save()
-                console.log(`Approved post with id ${postID}`)
-                return res.sendStatus(204)
-            }
-        }
-        console.log(`Unable to approve post with id ${postID}`)
-        return res.sendStatus(403)
-    }
-)
-
 //Create a new post
 router.post('/', recaptcha.middleware.verify, async (req, res) => {
     console.log(`Building new post`)
@@ -361,7 +292,6 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
         recaptcha.data.score > passingScore
     ) {
         console.log('Valid captcha token')
-        console.log(req.recaptcha)
         const post = await Post.build({
             title: req.body.title || null,
             description: req.body.description || null,
@@ -376,20 +306,23 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
         })
         try {
             await post.validate()
+            const isBanned = await User.isBanned(post.email)
+            if (isBanned) {
+                console.log(`Skipping post creation for banned user: ${post.email}`)
+            } else {
+                await post.save()
+                sendPostValidationMessage(post)
+                console.log(
+                    `New post saved and validation email sent to ${post.email}`
+                )
+                return res.sendStatus(204)
+            }
         } catch (e) {
             console.log('New post validation failed')
-            return res.sendStatus(422)
         }
-        await post.save()
-        sendPostValidationMessage(post)
-        console.log(`New post saved and validation email sent to ${post.email}`)
-        return res.sendStatus(200)
-    } else {
-        //Throw invalid response if captcha auth fails
-        console.log('Invalid captcha token')
-        console.log(req.recaptcha)
-        return res.sendStatus(422)
     }
+    //Throw 'post validation failed response if captcha auth fails
+    return res.sendStatus(422)
 })
 
 //Report a post

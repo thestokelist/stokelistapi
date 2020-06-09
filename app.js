@@ -10,7 +10,7 @@ const { strategy } = require('./auth')
 var corsOptions = {
     //TODO: Be more restrictive with CORS
     //Can't use credentials with a wildcard include, but can use this 'wildcard' origin function
-  origin: function (origin, callback) {
+  origin: (origin, callback) => {
       callback(null, true)
   },
   credentials: true
