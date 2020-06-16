@@ -117,7 +117,7 @@ Post.init(
     }
 )
 
-Post.afterCreate(async (post, options) => {
+Post.afterCreate(async (post) => {
     await User.findOrCreate({
         where: {
             email: post.email,

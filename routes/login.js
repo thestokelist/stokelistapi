@@ -36,7 +36,9 @@ router.post('/:uuid', async (req, res) => {
             ? req.body.email
             : null
     if (uuid === null || email === null) {
-        console.log(`Error handling login with login token ${uuid} and email ${email}`)
+        console.log(
+            `Error handling login with login token ${uuid} and email ${email}`
+        )
         return res.sendStatus(400)
     }
     let user = await User.findOne({
@@ -47,7 +49,9 @@ router.post('/:uuid', async (req, res) => {
     })
     console.log(user.toJSON())
     if (user === null || !dateWithin24Hours(user.updated_at)) {
-        console.log(`Error logging in user with login token ${uuid} and email ${email}`)
+        console.log(
+            `Error logging in user with login token ${uuid} and email ${email}`
+        )
         return res.sendStatus(404)
     }
     user.loginToken = null

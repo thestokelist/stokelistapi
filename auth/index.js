@@ -5,7 +5,7 @@ dotenv.config()
 
 const jwtOptions = {
     secretOrKey: process.env.JWT_KEY,
-    jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken()
+    jwtFromRequest: passportJWT.ExtractJwt.fromAuthHeaderAsBearerToken(),
 }
 
 exports.strategy = new passportJWT.Strategy(

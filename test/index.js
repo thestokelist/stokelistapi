@@ -33,4 +33,3 @@ exports.getPostFuzzer = () => {
     const fuzzGen = fuzzer.mutate.object(originalInput)
     return fuzzGen
 }
-

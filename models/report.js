@@ -36,5 +36,4 @@ Report.init(
     }
 )
 
-
 module.exports = Report

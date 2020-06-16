@@ -60,8 +60,8 @@ router.delete(
                 //Delete any posts from this user
                 await Post.destroy({
                     where: {
-                        email: initialPost.email
-                    }
+                        email: initialPost.email,
+                    },
                 })
                 //Set the user as banned
                 let [user] = await User.findOrCreate({

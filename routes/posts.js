@@ -84,8 +84,8 @@ router.get('/garage', async (req, res) => {
             endTime: { [Op.gt]: new Date().toISOString() },
             moderated: false,
             exactLocation: {
-                [Op.ne]: null
-              }
+                [Op.ne]: null,
+            },
         },
     })
     return res.json(trimPostDescriptions(posts))
@@ -311,7 +311,9 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
             await post.validate()
             const isBanned = await User.isBanned(post.email)
             if (isBanned) {
-                console.log(`Skipping post creation for banned user: ${post.email}`)
+                console.log(
+                    `Skipping post creation for banned user: ${post.email}`
+                )
             } else {
                 await post.save()
                 sendPostValidationMessage(post)

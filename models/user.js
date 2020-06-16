@@ -47,12 +47,12 @@ User.init(
     }
 )
 
-User.prototype.generateToken = function() {
+User.prototype.generateToken = function () {
     const token = createToken(this.email, this.isAdmin)
     return token
 }
 
-User.prototype.toJSON = function() {
+User.prototype.toJSON = function () {
     var values = Object.assign({}, this.get())
     //Remove fields the client doesn't need from the JSON response
     delete values.deletedAt

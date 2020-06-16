@@ -9,39 +9,32 @@ beforeAll(async (done) => {
 })
 
 //Smoke tests to make sure our testing framework runs and connects to our application
-it('Empty GET /posts works', async (done) => {
+test('empty GET /posts works', async () => {
     const res = await request.get('/posts')
-    await expect(res.status).toBe(200)
-    done()
+    expect(res.status).toBe(200)
 })
 
-it('Empty GET /sticky posts works', async (done) => {
+test('empty GET /sticky posts works', async () => {
     const res = await request.get('/posts/sticky')
-    await expect(res.status).toBe(200)
-
-    done()
+    expect(res.status).toBe(200)
 })
 
-it('Empty GET /garage posts works', async (done) => {
+test('empty GET /garage posts works', async () => {
     const res = await request.get('/posts/garage')
-    await expect(res.status).toBe(200)
-    done()
+    expect(res.status).toBe(200)
 })
 
-it('POST /posts fails with validation error (422) with no body', async (done) => {
+test('POST /posts fails with validation error (422) with no body', async () => {
     const res = await request.post('/posts')
-    await expect(res.status).toBe(422)
-    done()
+    expect(res.status).toBe(422)
 })
 
-it('DELETE /posts fails 404', async (done) => {
+test('DELETE /posts fails 404', async () => {
     const res = await request.delete('/posts')
-    await expect(res.status).toBe(404)
-    done()
+    expect(res.status).toBe(404)
 })
 
-it('DELETE /posts/1 with no authentication fails 401', async (done) => {
+test('DELETE /posts/1 with no authentication fails 401', async () => {
     const res = await request.delete('/posts/1')
-    await expect(res.status).toBe(401)
-    done()
+    expect(res.status).toBe(401)
 })
