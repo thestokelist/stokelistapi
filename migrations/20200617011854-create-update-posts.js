@@ -89,20 +89,19 @@ module.exports = {
         //Now we add the columns, in case we were dealing with a legacy posts table
         const updatePromises = []
         const tableDefinition = await queryInterface.describeTable('posts')
-        if (!tableDefinition.exactLocation) {
+        if (!tableDefinition.exact_location) {
             updatePromises.push(
-                queryInterface.addColumn('posts', 'exactLocation', {
+                queryInterface.addColumn('posts', 'exact_location', {
                     type: Sequelize.GEOMETRY,
                     field: 'exact_location',
                 })
             )
         }
-        if (!tableDefinition.isGarageSale) {
+        if (!tableDefinition.garage_sale) {
             updatePromises.push(
-                queryInterface.addColumn('posts', 'isGarageSale', {
+                queryInterface.addColumn('posts', 'garage_sale', {
                     type: Sequelize.BOOLEAN,
                     defaultValue: false,
-                    field: 'garage_sale',
                     allowNull: false,
                 })
             )
@@ -116,17 +115,17 @@ module.exports = {
                 })
             )
         }
-        if (!tableDefinition.startTime) {
+        if (!tableDefinition.start_time) {
             updatePromises.push(
-                queryInterface.addColumn('posts', 'startTime', {
+                queryInterface.addColumn('posts', 'start_time', {
                     type: Sequelize.DATE,
                     field: 'start_time',
                 })
             )
         }
-        if (!tableDefinition.endTime) {
+        if (!tableDefinition.end_time) {
             updatePromises.push(
-                queryInterface.addColumn('posts', 'endTime', {
+                queryInterface.addColumn('posts', 'end_time', {
                     type: Sequelize.DATE,
                     field: 'end_time',
                 })

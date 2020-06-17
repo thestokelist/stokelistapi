@@ -48,7 +48,7 @@ router.post('/:uuid', async (req, res) => {
         },
     })
     console.log(user.toJSON())
-    if (user === null || !dateWithin24Hours(user.updated_at)) {
+    if (user === null || !dateWithin24Hours(user.updatedAt)) {
         console.log(
             `Error logging in user with login token ${uuid} and email ${email}`
         )
