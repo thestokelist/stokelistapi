@@ -1,7 +1,9 @@
 'use strict'
 module.exports = {
-    up: (queryInterface, Sequelize) => {
-        return queryInterface.createTable('posts', {
+    up: async (queryInterface, Sequelize) => {
+        //This will run CREATE TABLE IF NOT EXISTS, so if we have an existing table
+        //nothing will happen
+        await queryInterface.createTable('posts', {
             id: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
@@ -24,8 +26,10 @@ module.exports = {
                 type: Sequelize.STRING,
                 allowNull: false,
             },
-            //TODO: Need to handle these next 3 at the same time as attachment upload
-            photoFileName: { type: Sequelize.STRING, field: 'photo_file_name' },
+            photoFileName: {
+                type: Sequelize.STRING,
+                field: 'photo_file_name',
+            },
             photoContentType: {
                 type: Sequelize.STRING,
                 field: 'photo_content_type',
@@ -81,6 +85,54 @@ module.exports = {
                 field: 'deleted_at',
             },
         })
+
+        //Now we add the columns, in case we were dealing with a legacy posts table
+        const updatePromises = []
+        const tableDefinition = await queryInterface.describeTable('posts')
+        if (!tableDefinition.exactLocation) {
+            updatePromises.push(
+                queryInterface.addColumn('posts', 'exactLocation', {
+                    type: Sequelize.GEOMETRY,
+                    field: 'exact_location',
+                })
+            )
+        }
+        if (!tableDefinition.isGarageSale) {
+            updatePromises.push(
+                queryInterface.addColumn('posts', 'isGarageSale', {
+                    type: Sequelize.BOOLEAN,
+                    defaultValue: false,
+                    field: 'garage_sale',
+                    allowNull: false,
+                })
+            )
+        }
+        if (!tableDefinition.moderated) {
+            updatePromises.push(
+                queryInterface.addColumn('posts', 'moderated', {
+                    type: Sequelize.BOOLEAN,
+                    defaultValue: false,
+                    allowNull: false,
+                })
+            )
+        }
+        if (!tableDefinition.startTime) {
+            updatePromises.push(
+                queryInterface.addColumn('posts', 'startTime', {
+                    type: Sequelize.DATE,
+                    field: 'start_time',
+                })
+            )
+        }
+        if (!tableDefinition.endTime) {
+            updatePromises.push(
+                queryInterface.addColumn('posts', 'endTime', {
+                    type: Sequelize.DATE,
+                    field: 'end_time',
+                })
+            )
+        }
+        return updatePromises
     },
     down: (queryInterface) => {
         return queryInterface.dropTable('posts')
