@@ -17,6 +17,7 @@ module.exports = {
             },
             remoteIp: {
                 type: Sequelize.STRING,
+                field: 'remote_ip',
             },
             postId: {
                 type: Sequelize.INTEGER,
@@ -26,17 +27,21 @@ module.exports = {
                 },
                 onUpdate: 'CASCADE',
                 onDelete: 'SET NULL',
+                field: 'post_id',
             },
             createdAt: {
                 allowNull: false,
                 type: Sequelize.DATE,
+                field: 'created_at',
             },
             updatedAt: {
                 allowNull: false,
                 type: Sequelize.DATE,
+                field: 'updated_at',
             },
             deletedAt: {
                 type: Sequelize.DATE,
+                field: 'deleted_at',
             },
         })
     },

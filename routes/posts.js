@@ -338,18 +338,19 @@ router.post('/:id/report', async (req, res) => {
         let post = await Post.findByPk(postID)
         if (post !== null) {
             const existingReports = await Report.findAll({
-                where: { postId: postID },
+                where: { post_id: postID },
                 paranoid: false,
             })
             //Check if someone has already reported this post using this IP
             //Or if the post was previously reported, and moderatir approved
             let reportExists = false
             let deletedReports = false
+            console.log(existingReports)
             for (let report of existingReports) {
                 if (report.remoteIp === req.ip) {
                     reportExists = true
                 }
-                if (report.deletedAt !== null) {
+                if (report.deleted_at !== null) {
                     deletedReports = true
                 }
             }
@@ -362,7 +363,7 @@ router.post('/:id/report', async (req, res) => {
                     reason: req.body.reason || null,
                     comment: req.body.comment || null,
                     remoteIp: req.ip,
-                    postId: postID,
+                    post_id: postID,
                 })
                 try {
                     console.log('Validating new report')
@@ -374,7 +375,7 @@ router.post('/:id/report', async (req, res) => {
                 await report.save()
                 console.log('New report created')
                 const reportCount = await Report.count({
-                    where: { postId: postID },
+                    where: { post_id: postID },
                 })
                 console.log(
                     `Total number of reports for this post is ${reportCount}`

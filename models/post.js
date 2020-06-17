@@ -107,9 +107,9 @@ Post.init(
         sequelize,
         modelName: 'Post',
         tableName: 'posts',
+        paranoid: true,
         createdAt: 'created_at',
         updatedAt: 'updated_at',
-        paranoid: true,
         deletedAt: 'deleted_at',
     }
 )
@@ -133,6 +133,6 @@ Post.prototype.hasPermissions = (user) => {
 }
 
 //foreign key constraints
-Post.hasMany(Report, { foreignKey: 'postId', allowNull: false, as: 'reports' })
+Post.hasMany(Report, { foreignKey: 'post_id', allowNull: false, as: 'reports' })
 
 module.exports = Post

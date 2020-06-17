@@ -131,9 +131,9 @@ router.put(
             let post = await Post.findByPk(postID, { paranoid: false })
             if (post !== null) {
                 //Set the post as no longer moderated, delete any associated reports
-                await Report.destroy({ where: { postId: post.id } })
+                await Report.destroy({ where: { post_id: post.id } })
                 //Restore a post if it was previously deleted
-                if (post.deletedAt !== null) {
+                if (post.deleted_at !== null) {
                     await post.restore()
                 }
                 post.moderated = false

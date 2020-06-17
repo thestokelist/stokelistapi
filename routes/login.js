@@ -47,13 +47,13 @@ router.post('/:uuid', async (req, res) => {
             email: email,
         },
     })
-    console.log(user.toJSON())
-    if (user === null || !dateWithin24Hours(user.updatedAt)) {
+    if (user === null || !dateWithin24Hours(user.updated_at)) {
         console.log(
             `Error logging in user with login token ${uuid} and email ${email}`
         )
         return res.sendStatus(404)
     }
+    console.log(user.toJSON())
     user.loginToken = null
     await user.save()
     console.log(`Succesfully logged in user with email ${email}`)

@@ -22,13 +22,16 @@ Report.init(
             type: DataTypes.STRING,
             allowNull: true,
         },
-        remoteIp: { type: DataTypes.STRING },
+        remoteIp: { type: DataTypes.STRING, field: 'remote_ip' },
     },
     {
         sequelize,
         modelName: 'Report',
         tableName: 'reports',
         paranoid: true,
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+        deletedAt: 'deleted_at',
     }
 )
 
