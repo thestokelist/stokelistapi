@@ -1,8 +1,10 @@
 const initDatabase = async () => {
     const Post = require('../models/post')
     const User = require('../models/user')
+    const Report = require('../models/report')
     await Post.sync({ alter: true })
     await User.sync({ alter: true })
+    await Report.sync({ alter: true })
 }
 
 exports.initSupertestWithMocks = async () => {

@@ -17,17 +17,15 @@ User.init(
         bannedAt: {
             type: DataTypes.DATE,
             allowNull: true,
-            field: 'banned_at',
         },
         isAdmin: {
             type: DataTypes.BOOLEAN,
+            allowNull: false,
             defaultValue: false,
-            field: 'is_admin',
         },
         loginToken: {
             type: DataTypes.UUID,
             allowNull: true,
-            field: 'login_token',
         },
         tokenValidity: {
             type: DataTypes.DATE,
@@ -36,14 +34,10 @@ User.init(
         },
     },
     {
-        underscored: true,
         sequelize,
         modelName: 'User',
         tableName: 'users',
         paranoid: true,
-        deletedAt: 'deleted_at',
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
     }
 )
 

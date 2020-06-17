@@ -91,9 +91,6 @@ Post.init(
             defaultValue: false,
             allowNull: false,
         },
-        //Ignored columns that appear not to be used/used anymore:
-        // price_in_cents, computed_tags, originating_country/region/lat_lng
-        // is_awesome, is_idiotic, tags
         startTime: {
             type: DataTypes.DATE,
             field: 'start_time',

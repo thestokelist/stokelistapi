@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize')
 const dotenv = require('dotenv')
 dotenv.config()
+const pg = require('pg')
 
 //default true
 const ssl = process.env.DB_SSL === undefined ? true : process.env.DB_SSL
@@ -13,6 +14,7 @@ const sequelize = new Sequelize({
     password: process.env.DB_PASS,
     ssl: ssl,
     native: ssl,
+    dialectModule: pg,
     dialectOptions: {
         ssl: ssl ? undefined : 'require',
     },
