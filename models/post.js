@@ -2,6 +2,7 @@ const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
 const User = require('./user')
 const Report = require('./report')
+const Media = require('./media')
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
 
@@ -134,5 +135,17 @@ Post.prototype.hasPermissions = (user) => {
 
 //foreign key constraints
 Post.hasMany(Report, { foreignKey: 'post_id', allowNull: false, as: 'reports' })
+Post.hasMany(Media, { foreignKey: 'media_id', allowNull: false, as: 'media' })
+
+Post.prototype.toJSON = function () {
+    var values = Object.assign({}, this.get())
+    //Remove fields the client doesn't need from the JSON response
+    delete values.deleted_at
+    delete values.moderated
+    delete values.email
+    delete values.guid
+    delete values.emailVerified
+    return values
+}
 
 module.exports = Post

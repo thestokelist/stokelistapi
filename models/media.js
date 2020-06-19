@@ -1,9 +1,9 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
 
-class Report extends Model {}
+class Media extends Model {}
 
-Report.init(
+Media.init(
     {
         id: {
             type: DataTypes.INTEGER,
@@ -11,23 +11,28 @@ Report.init(
             primaryKey: true,
             autoIncrement: true,
         },
-        reason: {
+        guid: {
+            type: DataTypes.UUID,
+            defaultValue: DataTypes.UUIDV4,
+            allowNull: false,
+        },
+        link: {
             type: DataTypes.STRING,
             allowNull: false,
-            validate: {
-                len: [0, 10],
-            },
         },
-        comment: {
+        type: {
             type: DataTypes.STRING,
-            allowNull: true,
+            allowNull: false,
         },
-        remoteIp: { type: DataTypes.STRING, field: 'remote_ip' },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
     },
     {
         sequelize,
-        modelName: 'Report',
-        tableName: 'reports',
+        modelName: 'Media',
+        tableName: 'media',
         paranoid: true,
         createdAt: 'created_at',
         updatedAt: 'updated_at',
@@ -35,12 +40,10 @@ Report.init(
     }
 )
 
-Report.prototype.toJSON = function () {
+Media.prototype.toJSON = function () {
     var values = Object.assign({}, this.get())
     //Remove fields the client doesn't need from the JSON response
     delete values.deleted_at
-    delete values.remoteIp
     return values
 }
-
-module.exports = Report
+module.exports = Media

@@ -58,6 +58,8 @@ User.prototype.toJSON = function () {
     //Remove fields the client doesn't need from the JSON response
     delete values.deleted_at
     delete values.tokenValidity
+    delete values.bannedAt
+    delete values.loginToken
     return values
 }
 
