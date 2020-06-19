@@ -1,7 +1,6 @@
 const passportJWT = require('passport-jwt')
-const dotenv = require('dotenv')
 const User = require('../models/user')
-dotenv.config()
+require('dotenv').config()
 
 const jwtOptions = {
     secretOrKey: process.env.JWT_KEY,

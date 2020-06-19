@@ -1,6 +1,5 @@
 const { Sequelize } = require('sequelize')
-const dotenv = require('dotenv')
-dotenv.config()
+require('dotenv').config()
 const pg = require('pg')
 
 //default true

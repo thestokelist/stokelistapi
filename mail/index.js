@@ -1,6 +1,5 @@
 const postmark = require('postmark')
-const dotenv = require('dotenv')
-dotenv.config()
+require('dotenv').config()
 
 const client = new postmark.Client(process.env.POSTMARK_KEY)
 
