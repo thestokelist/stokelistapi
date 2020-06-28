@@ -2,6 +2,7 @@ const Router = require('express-promise-router')
 const Post = require('../models/post')
 const User = require('../models/user')
 const Report = require('../models/report')
+const Media = require('../models/media')
 const passport = require('passport')
 
 // this has the same API as the normal express router except
@@ -94,6 +95,10 @@ router.get(
                         model: Report,
                         as: 'reports',
                     },
+                    {
+                        model: Media,
+                        as: 'media',
+                    },
                 ],
                 order: [['created_at', 'DESC']],
             })
@@ -107,6 +112,10 @@ router.get(
                         model: Report,
                         required: true,
                         as: 'reports',
+                    },
+                    {
+                        model: Media,
+                        as: 'media',
                     },
                 ],
                 order: [['created_at', 'DESC']],
@@ -128,15 +137,27 @@ router.put(
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         console.log(`Approving post with id ${postID}`)
         if (postID && req.user.isAdmin === true) {
-            let post = await Post.findByPk(postID, { paranoid: false })
+            let post = await Post.findByPk(postID, {
+                paranoid: false,
+                include: [
+                    {
+                        model: Media,
+                        as: 'media',
+                    },
+                ],
+            })
             if (post !== null) {
                 //Set the post as no longer moderated, delete any associated reports
-                await Report.destroy({ where: { post_id: post.id } })
+                await Report.destroy({
+                    where: { post_id: post.id },
+                })
                 //Restore a post if it was previously deleted
                 if (post.deleted_at !== null) {
                     await post.restore()
+                    //TODO: Use hooks to restore media too
                 }
                 post.moderated = false
+                await post.publiciseMedia()
                 await post.save()
                 console.log(`Approved post with id ${postID}`)
                 return res.sendStatus(204)

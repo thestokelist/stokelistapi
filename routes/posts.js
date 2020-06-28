@@ -1,12 +1,16 @@
 const Router = require('express-promise-router')
-const { sendPostValidationMessage } = require('../mail')
 const { Op } = require('sequelize')
-const Post = require('../models/post')
-const User = require('../models/user')
 const validator = require('validator')
 const passport = require('passport')
 const Recaptcha = require('express-recaptcha').RecaptchaV3
 require('dotenv').config()
+
+const { sendPostValidationMessage } = require('../mail')
+const Post = require('../models/post')
+const User = require('../models/user')
+const Media = require('../models/media')
+const { trimPostDescriptions } = require('../util/posts')
+
 const recaptcha = new Recaptcha(
     process.env.CAPTCHA_KEY,
     process.env.CAPTCHA_SECRET
@@ -32,26 +36,24 @@ const postAttributes = [
     'created_at',
 ]
 
-const trimPostDescriptions = (postsToTrim) => {
-    let trimmedPosts = []
-    for (const post of postsToTrim) {
-        const postJSON = post.toJSON()
-        if (postJSON.description.length > 143) {
-            let words = postJSON.description.split(' ')
-            let trimmedDescription = ''
-            for (const word of words) {
-                trimmedDescription += word + ' '
-                if (trimmedDescription.length > 140) {
-                    trimmedDescription += '...'
-                    break
-                }
-            }
-            postJSON.description = trimmedDescription.replace(/\r?\n|\r/g, '  ')
-        }
-        trimmedPosts.push(postJSON)
-    }
-    return trimmedPosts
+const POST_LIMIT = 50
+
+const standardGetOrder = [
+    ['created_at', 'DESC'],
+    ['media', 'created_at', 'ASC'],
+]
+
+const whereClause = {
+    emailVerified: true,
+    moderated: false,
 }
+
+const includeMedia = [
+    {
+        model: Media,
+        as: 'media',
+    },
+]
 
 //Get 50 latest posts, with optional offset
 router.get('/', async (req, res) => {
@@ -59,14 +61,11 @@ router.get('/', async (req, res) => {
     console.log(`Loading latest posts with offset ${offset}`)
     const posts = await Post.findAll({
         attributes: postAttributes,
-        where: {
-            sticky: false,
-            emailVerified: true,
-            moderated: false,
-        },
-        order: [['created_at', 'DESC']],
-        limit: 50,
+        where: { ...whereClause },
+        order: standardGetOrder,
+        limit: POST_LIMIT,
         offset: offset,
+        include: includeMedia,
     })
     return res.json(trimPostDescriptions(posts))
 })
@@ -77,14 +76,18 @@ router.get('/garage', async (req, res) => {
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
-            emailVerified: true,
+            ...whereClause,
             isGarageSale: true,
             endTime: { [Op.gt]: new Date().toISOString() },
-            moderated: false,
             exactLocation: {
                 [Op.ne]: null,
             },
         },
+        include: includeMedia,
+        order: [
+            ['startTime', 'ASC'],
+            ['media', 'created_at', 'ASC'],
+        ],
     })
     return res.json(trimPostDescriptions(posts))
 })
@@ -99,6 +102,7 @@ router.get('/search', async (req, res) => {
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
+            ...whereClause,
             [Op.or]: {
                 description: {
                     [Op.iLike]: query,
@@ -107,12 +111,11 @@ router.get('/search', async (req, res) => {
                     [Op.iLike]: query,
                 },
             },
-            emailVerified: true,
-            moderated: false,
         },
-        order: [['created_at', 'DESC']],
-        limit: 50,
+        order: standardGetOrder,
+        limit: POST_LIMIT,
         offset: offset,
+        include: includeMedia,
     })
     return res.json(trimPostDescriptions(posts))
 })
@@ -123,9 +126,11 @@ router.get('/sticky', async (req, res) => {
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
+            ...whereClause,
             sticky: true,
         },
-        order: [['created_at', 'DESC']],
+        order: standardGetOrder,
+        include: includeMedia,
     })
     return res.json(trimPostDescriptions(posts))
 })
@@ -140,10 +145,11 @@ router.get(
         const posts = await Post.findAll({
             attributes: postAttributes,
             where: {
+                ...whereClause,
                 email: userEmail,
-                emailVerified: true,
             },
-            order: [['created_at', 'DESC']],
+            order: standardGetOrder,
+            include: includeMedia,
         })
         return res.json(trimPostDescriptions(posts))
     }
@@ -156,10 +162,11 @@ router.get('/:id', async (req, res) => {
     const post = await Post.findOne({
         attributes: postAttributes,
         where: {
+            ...whereClause,
             id: postID,
-            emailVerified: true,
-            moderated: false,
         },
+        include: includeMedia,
+        order: [['media', 'created_at', 'ASC']],
     })
     return res.json(post)
 })
@@ -172,6 +179,7 @@ router.post('/v/:uuid', async (req, res) => {
         where: {
             guid: postUUID,
         },
+        include: includeMedia,
     })
     if (post && post.emailVerified === false) {
         post.emailVerified = true
@@ -191,6 +199,8 @@ router.post('/v/:uuid', async (req, res) => {
             //or if any of their other posts are moderated
             //then moderate this post
             post.moderated = true
+        } else {
+            await post.publiciseMedia()
         }
         await post.save()
         const returnObject = { post, token: user.generateToken() }
@@ -211,9 +221,10 @@ router.delete(
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         //If logged in and post ID is a valid number
         if (postID !== null) {
-            let post = await Post.findByPk(postID)
+            let post = await Post.findByPk(postID, { include: includeMedia })
             if (post.hasPermissions(req.user)) {
                 await post.destroy()
+                await post.privatizeMedia()
                 console.log(`Deleted post with id ${postID}`)
                 return res.sendStatus(204)
             }
@@ -234,9 +245,13 @@ router.patch(
         //If logged in and post ID is a valid number
         const userEmail = req.user.email
         if (postID !== null) {
-            let post = await Post.findByPk(postID, { paranoid: false })
+            let post = await Post.findByPk(postID, {
+                paranoid: false,
+                include: includeMedia,
+            })
             if (post && post.email === userEmail) {
                 await post.restore()
+                await post.publiciseMedia()
                 console.log(`Undeleted post with id ${postID}`)
                 return res.sendStatus(204)
             }
@@ -254,7 +269,9 @@ router.put(
         console.log(`Attempting to update post with id ${req.params.id}`)
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         if (postID !== null) {
-            let post = await Post.findByPk(postID)
+            let post = await Post.findByPk(postID, {
+                include: includeMedia,
+            })
             const userEmail = req.user.email
             if (post && post.email === userEmail) {
                 post.title = req.body.title || null
@@ -272,6 +289,31 @@ router.put(
                     return res.sendStatus(422)
                 }
                 await post.save()
+                const mediaArray = req.body.media || []
+
+                for (let existingMedia of post.media) {
+                    console.log(existingMedia.toJSON())
+                    const updatedMedia = mediaArray.find(
+                        (media) => media.id === existingMedia.id
+                    )
+                    console.log(updatedMedia)
+                    if (updatedMedia) {
+                        const newName = updatedMedia.name || ''
+                        existingMedia.name = newName
+                        await existingMedia.save()
+                    } else {
+                        //Explicit media delete
+                        await existingMedia.destroy()
+                    }
+                }
+                const newMedia = mediaArray.filter((x) => x.guid !== null)
+                for (let media of newMedia) {
+                    const name = media.name || ''
+                    await Media.update(
+                        { name: name, post_id: post.id, guid: null },
+                        { where: { guid: media.guid } }
+                    )
+                }
                 console.log(`Updated post with id ${postID}`)
                 return res.json(post)
             }
@@ -314,6 +356,17 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
                 )
             } else {
                 await post.save()
+                const mediaArray = req.body.media
+                if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+                    for (let m of mediaArray) {
+                        console.log(m)
+                        const name = m.name || ''
+                        Media.update(
+                            { name: name, post_id: post.id, guid: null },
+                            { where: { guid: m.guid } }
+                        )
+                    }
+                }
                 sendPostValidationMessage(post)
                 console.log(
                     `New post saved and validation email sent to ${post.email}`

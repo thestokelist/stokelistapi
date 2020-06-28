@@ -11,6 +11,9 @@ module.exports = {
             guid: {
                 type: Sequelize.UUID,
                 defaultValue: Sequelize.UUIDV4,
+            },
+            key: {
+                type: Sequelize.STRING,
                 allowNull: false,
             },
             link: {
@@ -24,6 +27,16 @@ module.exports = {
             name: {
                 type: Sequelize.STRING,
                 allowNull: false,
+            },
+            postId: {
+                type: Sequelize.INTEGER,
+                references: {
+                    model: 'posts',
+                    key: 'id',
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL',
+                field: 'post_id',
             },
             createdAt: {
                 allowNull: false,

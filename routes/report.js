@@ -1,7 +1,7 @@
 const Router = require('express-promise-router')
 
 const Report = require('../models/report')
-
+const Media = require('../models/media')
 const Post = require('../models/post')
 
 const router = new Router()
@@ -12,7 +12,14 @@ router.post('/:id', async (req, res) => {
     console.log(`Creating new post report`)
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
     if (postID !== null) {
-        let post = await Post.findByPk(postID)
+        let post = await Post.findByPk(postID, {
+            include: [
+                {
+                    model: Media,
+                    as: 'media',
+                },
+            ],
+        })
         if (post !== null) {
             const existingReports = await Report.findAll({
                 where: { post_id: postID },
@@ -59,6 +66,7 @@ router.post('/:id', async (req, res) => {
                 )
                 if (reportCount >= 1) {
                     post.moderated = true
+                    await post.privatizeMedia()
                     await post.save()
                 }
             }

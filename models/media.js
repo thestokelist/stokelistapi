@@ -1,5 +1,6 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
+const { deleteS3Object, updateS3Acl } = require('../util/s3')
 
 class Media extends Model {}
 
@@ -14,6 +15,9 @@ Media.init(
         guid: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
+        },
+        key: {
+            type: DataTypes.STRING,
             allowNull: false,
         },
         link: {
@@ -40,10 +44,27 @@ Media.init(
     }
 )
 
+Media.beforeDestroy(async (media) => {
+    deleteS3Object(media.key)
+})
+
 Media.prototype.toJSON = function () {
-    var values = Object.assign({}, this.get())
+    let values = Object.assign({}, this.get())
     //Remove fields the client doesn't need from the JSON response
     delete values.deleted_at
+    delete values.key
+    //Help the client, by using an empty string to represent a null GUID
+    if (values.guid === null) {
+        values.guid = ''
+    }
     return values
+}
+
+Media.prototype.publicise = async function () {
+    await updateS3Acl('public-read', this.key)
+}
+
+Media.prototype.privatize = async function () {
+    await updateS3Acl('private', this.key)
 }
 module.exports = Media
