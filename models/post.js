@@ -1,10 +1,12 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
+const TurndownService = require('turndown')
+const turndownService = new TurndownService()
+
 const User = require('./user')
 const Report = require('./report')
 const Media = require('./media')
-const TurndownService = require('turndown')
-const turndownService = new TurndownService()
+const { getSignedUrl } = require('../util/s3')
 
 const isntTooYellyWithTheCaps = (string) => {
     const upperCaseCount = string.replace(/[^A-Z]/g, '').length
@@ -167,6 +169,23 @@ Post.prototype.privatizeMedia = async function () {
             await m.privatize()
         }
     }
+}
+
+Post.prototype.toJSONSigned = async function () {
+    const media = this.media
+    let postJSON = this.toJSON()
+    if (Array.isArray(media) && media.length > 0) {
+        const signedMedia = await Promise.all(
+            media.map(async (m) => {
+                const mediaJSON = m.toJSON()
+                const signedUrl = await getSignedUrl(m)
+                mediaJSON.link = signedUrl
+                return mediaJSON
+            })
+        )
+        postJSON.media = signedMedia
+    }
+    return postJSON
 }
 
 module.exports = Post

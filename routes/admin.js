@@ -1,9 +1,10 @@
 const Router = require('express-promise-router')
+const passport = require('passport')
+
 const Post = require('../models/post')
 const User = require('../models/user')
 const Report = require('../models/report')
 const Media = require('../models/media')
-const passport = require('passport')
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -85,6 +86,7 @@ router.get(
     passport.authenticate('jwt', { session: false }),
     async (req, res) => {
         if (req.user.isAdmin === true) {
+            //These posts are moderated, so we'll need signed URL's for their images
             const moderatedPosts = await Post.findAll({
                 attributes: adminPostAttributes,
                 where: {
@@ -102,6 +104,7 @@ router.get(
                 ],
                 order: [['created_at', 'DESC']],
             })
+            //These posts are just reported, so their images will work
             const reportedPosts = await Post.findAll({
                 attributes: adminPostAttributes,
                 where: {
@@ -120,7 +123,16 @@ router.get(
                 ],
                 order: [['created_at', 'DESC']],
             })
-            const allModeratedPosts = moderatedPosts.concat(reportedPosts)
+            const signedModeratedPostsJSON = await Promise.all(
+                moderatedPosts.map(async (post) => {
+                    const signedPost = await post.toJSONSigned()
+                    return signedPost
+                })
+            )
+            const reportedPostsJSON = reportedPosts.map((post) => post.toJSON())
+            const allModeratedPosts = signedModeratedPostsJSON.concat(
+                reportedPostsJSON
+            )
             console.log(`Returning ${allModeratedPosts.length} moderated posts`)
             return res.json(allModeratedPosts)
         } else {
