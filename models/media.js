@@ -1,6 +1,13 @@
 const { DataTypes, Model } = require('sequelize')
 const sequelize = require('../db')
-const { deleteS3Object, updateS3Acl } = require('../util/s3')
+const {
+    deleteS3Object,
+    updateS3Acl,
+    getImgUrl,
+    getSignedUrl,
+} = require('../util/s3')
+
+const imgUrl = getImgUrl()
 
 class Media extends Model {}
 
@@ -20,7 +27,7 @@ Media.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
-        link: {
+        thumb: {
             type: DataTypes.STRING,
             allowNull: false,
         },
@@ -31,6 +38,24 @@ Media.init(
         name: {
             type: DataTypes.STRING,
             allowNull: false,
+        },
+        link: {
+            type: DataTypes.VIRTUAL,
+            get() {
+                return `${imgUrl}${this.key}`
+            },
+            set() {
+                throw new Error(`Can't set link`)
+            },
+        },
+        thumbLink: {
+            type: DataTypes.VIRTUAL,
+            get() {
+                return `${imgUrl}${this.thumb}`
+            },
+            set() {
+                throw new Error(`Can't set link`)
+            },
         },
     },
     {
@@ -45,6 +70,8 @@ Media.init(
 )
 
 Media.beforeDestroy(async (media) => {
+    //Because the Post is paranoid, this is only run when we explicitly call
+    //.destroy on the media, rather than when the post is destroyed
     deleteS3Object(media.key)
 })
 
@@ -52,7 +79,6 @@ Media.prototype.toJSON = function () {
     let values = Object.assign({}, this.get())
     //Remove fields the client doesn't need from the JSON response
     delete values.deleted_at
-    delete values.key
     //Help the client, by using an empty string to represent a null GUID
     if (values.guid === null) {
         values.guid = ''
@@ -62,9 +88,22 @@ Media.prototype.toJSON = function () {
 
 Media.prototype.publicise = async function () {
     await updateS3Acl('public-read', this.key)
+    await updateS3Acl('public-read', this.thumb)
 }
 
 Media.prototype.privatize = async function () {
     await updateS3Acl('private', this.key)
+    await updateS3Acl('private', this.thumb)
 }
+
+Media.prototype.toJSONSigned = async function () {
+    const mediaJSON = this.toJSON()
+    const signedUrl = await getSignedUrl(this.key)
+    const signedThumbUrl = await getSignedUrl(this.thumb)
+    mediaJSON.link = signedUrl
+    mediaJSON.thumbLink = signedThumbUrl
+    console.log(mediaJSON)
+    return mediaJSON
+}
+
 module.exports = Media

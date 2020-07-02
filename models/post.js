@@ -6,7 +6,6 @@ const turndownService = new TurndownService()
 const User = require('./user')
 const Report = require('./report')
 const Media = require('./media')
-const { getSignedUrl } = require('../util/s3')
 
 const isntTooYellyWithTheCaps = (string) => {
     const upperCaseCount = string.replace(/[^A-Z]/g, '').length
@@ -177,9 +176,7 @@ Post.prototype.toJSONSigned = async function () {
     if (Array.isArray(media) && media.length > 0) {
         const signedMedia = await Promise.all(
             media.map(async (m) => {
-                const mediaJSON = m.toJSON()
-                const signedUrl = await getSignedUrl(m)
-                mediaJSON.link = signedUrl
+                const mediaJSON = await m.toJSONSigned()
                 return mediaJSON
             })
         )

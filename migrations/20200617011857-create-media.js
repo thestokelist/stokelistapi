@@ -16,7 +16,7 @@ module.exports = {
                 type: Sequelize.STRING,
                 allowNull: false,
             },
-            link: {
+            thumb: {
                 type: Sequelize.STRING,
                 allowNull: false,
             },
