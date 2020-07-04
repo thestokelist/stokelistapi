@@ -6,6 +6,7 @@ exports.removeUnusedUploads = async () => {
 exports.processNewEmails = async () => {
     const gmailUser = process.env.GMAIL_USER
     if (gmailUser && gmailUser !== '') {
+        const emailPart = gmailUser.split('@')[0]
         const { ImapFlow } = require('imapflow')
         const simpleParser = require('mailparser').simpleParser
         const { forwardValidEmail, forwardInvalidEmail } = require('../mail')
@@ -31,9 +32,7 @@ exports.processNewEmails = async () => {
                 const subject = parsed.subject
                 const body = parsed.html
                 const attachments = parsed.attachments
-                const validEmail = new RegExp(
-                    process.env.EMAIL_PREFIX + '\\+(\\d+)\\@.*'
-                )
+                const validEmail = new RegExp(emailPart + '\\+(\\d+)\\@.*')
                 const matches = validEmail.exec(senderAddress)
                 try {
                     if (matches) {

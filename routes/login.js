@@ -1,6 +1,7 @@
 const Router = require('express-promise-router')
 const validator = require('validator')
 const { v4 } = require('uuid')
+const passport = require('passport')
 
 const User = require('../models/user')
 const { sendLoginMessage } = require('../mail')
@@ -59,3 +60,20 @@ router.post('/:uuid', async (req, res) => {
     console.log(`Succesfully logged in user with email ${email}`)
     return res.status(200).send(user.generateToken())
 })
+
+//Logout for all sessions, authenticated
+router.delete(
+    '/',
+    passport.authenticate('jwt', { session: false }),
+    async (req, res) => {
+        const user = req.user
+        if (user !== null) {
+            //All jwt's issued before this time are no longer valid
+            user.tokenValidity = new Date()
+            await user.save()
+            console.log(`Logged out all sessions for ${user.email}`)
+            return res.sendStatus(204)
+        }
+        return res.sendStatus(403)
+    }
+)

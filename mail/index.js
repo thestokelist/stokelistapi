@@ -2,7 +2,7 @@ const postmark = require('postmark')
 
 const client = new postmark.Client(process.env.POSTMARK_KEY)
 const adminEmail = process.env.ADMIN_EMAIL
-const fromEmail = process.env.FROM_EMAIL
+const fromEmail = process.env.GMAIL_USER
 
 exports.sendPostValidationMessage = (post) => {
     client.sendEmail({
