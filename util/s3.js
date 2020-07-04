@@ -2,7 +2,6 @@ const AWS = require('aws-sdk')
 const multer = require('multer')
 const multerS3 = require('multer-s3-transform')
 const sharp = require('sharp')
-require('dotenv').config()
 
 const bucketName = process.env.AWS_S3_BUCKET
 
@@ -72,7 +71,7 @@ exports.deleteS3Object = async (key) => {
         await s3.deleteObject(params).promise()
         console.log(`Deleted object from s3 with key ${key}`)
     } catch (err) {
-        console.log(err, err.stack) // an error occurred
+        console.log(`Failed to delete object from s3 with key ${key}`)
     }
 }
 

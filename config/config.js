@@ -1,5 +1,3 @@
-require('dotenv').config()
-
 let username = process.env.DB_USER
 let password = process.env.DB_PASS
 let database = process.env.DB_NAME

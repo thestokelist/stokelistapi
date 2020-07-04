@@ -1,4 +1,4 @@
-const { DataTypes, Model } = require('sequelize')
+const { DataTypes, Model, Op } = require('sequelize')
 const sequelize = require('../db')
 const {
     deleteS3Object,
@@ -6,6 +6,7 @@ const {
     getImgUrl,
     getSignedUrl,
 } = require('../util/s3')
+const { twoHoursAgo } = require('../util/date')
 
 const imgUrl = getImgUrl()
 
@@ -69,10 +70,29 @@ Media.init(
     }
 )
 
+Media.removeUnusedUploads = async () => {
+    const twoHours = twoHoursAgo()
+    const unusedUploads = await Media.findAll({
+        where: {
+            guid: {
+                [Op.ne]: null,
+            },
+            created_at: {
+                [Op.lt]: twoHours,
+            },
+        },
+    })
+    unusedUploads.forEach((media) => {
+        console.log(`Desroying media with id ${media.id}`)
+        media.destroy()
+    })
+}
+
 Media.beforeDestroy(async (media) => {
     //Because the Post is paranoid, this is only run when we explicitly call
     //.destroy on the media, rather than when the post is destroyed
     deleteS3Object(media.key)
+    deleteS3Object(media.thumb)
 })
 
 Media.prototype.toJSON = function () {

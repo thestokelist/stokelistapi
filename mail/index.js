@@ -1,11 +1,12 @@
 const postmark = require('postmark')
-require('dotenv').config()
 
 const client = new postmark.Client(process.env.POSTMARK_KEY)
+const adminEmail = process.env.ADMIN_EMAIL
+const fromEmail = process.env.FROM_EMAIL
 
 exports.sendPostValidationMessage = (post) => {
     client.sendEmail({
-        From: 'list@thestoke.ca',
+        From: fromEmail,
         To: post.email,
         Subject: `Your Stoke List Post: ${post.title}`,
         TextBody: `You're *almost* done!
@@ -26,7 +27,7 @@ Thanks, The Stoke List.`,
 
 exports.sendLoginMessage = (user) => {
     client.sendEmail({
-        From: 'list@thestoke.ca',
+        From: fromEmail,
         To: user.email,
         Subject: `Your Stoke List Login`,
         TextBody: `You're *almost* done!
@@ -38,5 +39,35 @@ ${process.env.REACT_APP_URL}/login/${user.loginToken}?email=${user.email}
 If you didn't request this email, we're sorry - you can just ignore it
         
 Thanks, The Stoke List.`,
+    })
+}
+
+exports.forwardInvalidEmail = (sender, subject, htmlBody, attachments) => {
+    if (adminEmail && adminEmail !== '') {
+        client.sendEmail({
+            From: fromEmail,
+            To: adminEmail,
+            ReplyTo: sender,
+            Subject: subject,
+            HtmlBody: htmlBody,
+            Attachments: attachments,
+        })
+    }
+}
+
+exports.forwardValidEmail = (
+    recipient,
+    sender,
+    subject,
+    htmlBody,
+    attachments
+) => {
+    client.sendEmail({
+        From: fromEmail,
+        To: recipient,
+        ReplyTo: sender,
+        Subject: subject,
+        HtmlBody: htmlBody,
+        Attachments: attachments,
     })
 }

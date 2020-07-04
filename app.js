@@ -1,11 +1,23 @@
-// ./app.js
+require('dotenv').config()
 const express = require('express')
+const cron = require('node-cron')
 const mountRoutes = require('./routes')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const helmet = require('helmet')
 const passport = require('passport')
 const { strategy } = require('./auth')
+const { removeUnusedUploads, processNewEmails } = require('./util/scheduled')
+
+cron.schedule('*/10 * * * *', function () {
+    console.log('Checking for new emails to process, every 10 minutes')
+    processNewEmails()
+})
+
+cron.schedule('0 * * * *', function () {
+    console.log('Clearing unused uploads, on the hour')
+    removeUnusedUploads()
+})
 
 var corsOptions = {
     //TODO: Be more restrictive with CORS

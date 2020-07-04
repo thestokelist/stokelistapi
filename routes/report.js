@@ -64,7 +64,7 @@ router.post('/:id', async (req, res) => {
                 console.log(
                     `Total number of reports for this post is ${reportCount}`
                 )
-                if (reportCount >= 1) {
+                if (reportCount >= 3) {
                     post.moderated = true
                     await post.privatizeMedia()
                     await post.save()

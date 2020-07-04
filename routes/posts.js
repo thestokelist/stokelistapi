@@ -3,7 +3,6 @@ const { Op } = require('sequelize')
 const validator = require('validator')
 const passport = require('passport')
 const Recaptcha = require('express-recaptcha').RecaptchaV3
-require('dotenv').config()
 
 const { sendPostValidationMessage } = require('../mail')
 const Post = require('../models/post')
