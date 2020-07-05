@@ -28,12 +28,13 @@ exports.processNewEmails = async () => {
             for (let seq of seqList) {
                 let { content } = await client.download(seq)
                 let parsed = await simpleParser(content)
-                const senderAddress = parsed.to.value[0].address
+                const toAddress = parsed.to.value[0].address
+                const fromAddress = parsed.from.value[0].address
                 const subject = parsed.subject
                 const body = parsed.html
                 const attachments = parsed.attachments
                 const validEmail = new RegExp(emailPart + '\\+(\\d+)\\@.*')
-                const matches = validEmail.exec(senderAddress)
+                const matches = validEmail.exec(toAddress)
                 try {
                     if (matches) {
                         const postId = matches[1]
@@ -43,7 +44,7 @@ exports.processNewEmails = async () => {
                             if (post) {
                                 forwardValidEmail(
                                     post.email,
-                                    senderAddress,
+                                    fromAddress,
                                     subject,
                                     body,
                                     attachments
@@ -52,10 +53,10 @@ exports.processNewEmails = async () => {
                         }
                     } else {
                         console.log(
-                            `Invalid email from ${senderAddress}, forwarding for review`
+                            `Invalid email from ${fromAddress}, forwarding for review`
                         )
                         forwardInvalidEmail(
-                            senderAddress,
+                            fromAddress,
                             subject,
                             body,
                             attachments
