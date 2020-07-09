@@ -33,6 +33,8 @@ exports.processNewEmails = async () => {
                 const subject = parsed.subject
                 const body = parsed.html
                 const attachments = parsed.attachments
+                //If gmail user is user@gmail.com
+                //A valid email is an email send to user+postID@gmail.com
                 const validEmail = new RegExp(emailPart + '\\+(\\d+)\\@.*')
                 const matches = validEmail.exec(toAddress)
                 try {

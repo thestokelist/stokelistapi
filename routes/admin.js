@@ -32,10 +32,13 @@ router.get(
     passport.authenticate('jwt', { session: false }),
     async (req, res) => {
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
-        if (postID !== null) {
+        if (postID !== null && req.user.isAdmin === true) {
             let initialPost = await Post.findByPk(postID)
             if (initialPost) {
                 //Any posts from this email address, including previously deleted posts
+                console.log(
+                    `Loading admin request for post history: ${initialPost.email}`
+                )
                 const judgementPosts = await Post.findAll({
                     attributes: adminPostAttributes,
                     where: {
@@ -46,7 +49,7 @@ router.get(
                 return res.json(judgementPosts)
             }
         }
-        return res.sendStatus(404)
+        return res.sendStatus(403)
     }
 )
 
@@ -56,8 +59,11 @@ router.delete(
     passport.authenticate('jwt', { session: false }),
     async (req, res) => {
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
-        if (postID !== null) {
+        if (postID !== null && req.user.isAdmin === true) {
             let initialPost = await Post.findByPk(postID)
+            console.log(
+                `Deleting and banning ${initialPost.email} by admin request`
+            )
             if (initialPost) {
                 //Delete any posts from this user
                 await Post.destroy({
@@ -76,7 +82,7 @@ router.delete(
                 return res.sendStatus(204)
             }
         }
-        return res.sendStatus(404)
+        return res.sendStatus(403)
     }
 )
 
@@ -86,7 +92,6 @@ router.get(
     passport.authenticate('jwt', { session: false }),
     async (req, res) => {
         if (req.user.isAdmin === true) {
-            //These posts are moderated, so we'll need signed URL's for their images
             const moderatedPosts = await Post.findAll({
                 attributes: adminPostAttributes,
                 where: {
@@ -123,21 +128,22 @@ router.get(
                 ],
                 order: [['created_at', 'DESC']],
             })
+            //These posts are moderated, so we'll need signed URL's for their images
             const signedModeratedPostsJSON = await Promise.all(
                 moderatedPosts.map(async (post) => {
                     const signedPost = await post.toJSONSigned()
                     return signedPost
                 })
             )
+            //These posts aren't moderated, their images are public, so just toJSON
             const reportedPostsJSON = reportedPosts.map((post) => post.toJSON())
             const allModeratedPosts = signedModeratedPostsJSON.concat(
                 reportedPostsJSON
             )
             console.log(`Returning ${allModeratedPosts.length} moderated posts`)
             return res.json(allModeratedPosts)
-        } else {
-            res.sendStatus(403)
         }
+        return res.sendStatus(403)
     }
 )
 
@@ -148,7 +154,7 @@ router.put(
     async (req, res) => {
         const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
         console.log(`Approving post with id ${postID}`)
-        if (postID && req.user.isAdmin === true) {
+        if (postID !== null && req.user.isAdmin === true) {
             let post = await Post.findByPk(postID, {
                 paranoid: false,
                 include: [
@@ -159,7 +165,7 @@ router.put(
                 ],
             })
             if (post !== null) {
-                //Set the post as no longer moderated, delete any associated reports
+                //delete any associated reports
                 await Report.destroy({
                     where: { post_id: post.id },
                 })

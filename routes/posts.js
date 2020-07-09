@@ -250,7 +250,9 @@ router.patch(
             })
             if (post && post.email === userEmail) {
                 await post.restore()
-                await post.publiciseMedia()
+                if (post.moderated !== true) {
+                    await post.publiciseMedia()
+                }
                 console.log(`Undeleted post with id ${postID}`)
                 return res.sendStatus(204)
             }
@@ -288,30 +290,26 @@ router.put(
                     return res.sendStatus(422)
                 }
                 await post.save()
+                //The media submitted by the user
                 const mediaArray = req.body.media || []
-
                 for (let existingMedia of post.media) {
-                    console.log(existingMedia.toJSON())
+                    //Find if we already have a media with this ID
                     const updatedMedia = mediaArray.find(
                         (media) => media.id === existingMedia.id
                     )
-                    console.log(updatedMedia)
                     if (updatedMedia) {
-                        const newName = updatedMedia.name || ''
-                        existingMedia.name = newName
+                        //If we do, just update it
+                        existingMedia.name = updatedMedia.name || ''
                         await existingMedia.save()
                     } else {
-                        //Explicit media delete
+                        //Otherwise, explicit media delete
                         await existingMedia.destroy()
                     }
                 }
+                //Any media with a GUID must be new
                 const newMedia = mediaArray.filter((x) => x.guid !== null)
                 for (let media of newMedia) {
-                    const name = media.name || ''
-                    await Media.update(
-                        { name: name, post_id: post.id, guid: null },
-                        { where: { guid: media.guid } }
-                    )
+                    await Media.assign(media, post.id)
                 }
                 console.log(`Updated post with id ${postID}`)
                 return res.json(post)
@@ -358,12 +356,7 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
                 const mediaArray = req.body.media
                 if (Array.isArray(mediaArray) && mediaArray.length > 0) {
                     for (let m of mediaArray) {
-                        console.log(m)
-                        const name = m.name || ''
-                        Media.update(
-                            { name: name, post_id: post.id, guid: null },
-                            { where: { guid: m.guid } }
-                        )
+                        await Media.assign(m, post.id)
                     }
                 }
                 sendPostValidationMessage(post)

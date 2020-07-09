@@ -29,7 +29,7 @@ router.post('/', async (req, res) => {
     return res.sendStatus(200)
 })
 
-//Validates a user login with magic token, clears that token, returns hmac for authentication
+//Validates a user login with magic token, clears that token, returns JWT
 router.post('/:uuid', async (req, res) => {
     const uuid = validator.isUUID(req.params.uuid) ? req.params.uuid : null
     const email =

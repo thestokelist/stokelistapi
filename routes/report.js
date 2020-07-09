@@ -26,18 +26,13 @@ router.post('/:id', async (req, res) => {
                 paranoid: false,
             })
             //Check if someone has already reported this post using this IP
-            //Or if the post was previously reported, and moderatir approved
-            let reportExists = false
-            let deletedReports = false
-            console.log(existingReports)
-            for (let report of existingReports) {
-                if (report.remoteIp === req.ip) {
-                    reportExists = true
-                }
-                if (report.deleted_at !== null) {
-                    deletedReports = true
-                }
-            }
+            //Or if the post was previously reported, and moderator approved
+            const reportExists = existingReports.some(
+                (report) => report.remoteIp === req.ip
+            )
+            const deletedReports = existingReports.some(
+                (report) => report.deleted_at !== null
+            )
             if (reportExists || deletedReports) {
                 console.log('Skipping report creation')
                 //No need to do anything - if the report exists from this IP, we don't need to create it

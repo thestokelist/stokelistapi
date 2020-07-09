@@ -153,4 +153,16 @@ Media.prototype.toJSONSigned = async function () {
     return mediaJSON
 }
 
+Media.assign(
+    async (media, postId) =>
+        await Media.update(
+            {
+                name: media.name || '',
+                post_id: postId,
+                guid: null,
+            },
+            { where: { guid: media.guid } }
+        )
+)
+
 module.exports = Media

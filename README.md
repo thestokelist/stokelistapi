@@ -1,25 +1,51 @@
+# The Stoke List
+
 This is the API for [The Stoke List](https://github.com/lukenorman/stokelistdemo).
 
-If you want to run our own Stoke List, and we encourage you to do so, you'll need a few things. It's possible that bits of the stack can be swapped out for other tech, but this is what we recommend
+If you want to run your own Stoke List, and we encourage you to do so, you'll need a few things.
 
 ## Required Services
 
-Postgres database server
-Postmark account with API key
-URL of Frontend
-Google V3 Recaptcha Key/Secret pair
-AWS account - s3 bucket and IAM user with permissions to access
-Gmail Account
+* PostgreSQL database, with PostGIS extension enabled
+* Postmark account with API key
+* URL of Frontend
+* Google V3 Recaptcha Key/Secret pair
+* AWS account - s3 bucket and IAM user with permissions to access
+* Gmail Account
 
-## Get started
+## Deploy Locally
 
 Clone this Github
-'npm install'
+```
+https://github.com/thestoke/api.thestoke.ca
+```
 
-Referring to sample.env, configure the enviroment, either by it to .env, or setting the appropriate variables in your deployment platform
+Download dependencies
+```
+npm install
+```
 
-'npx sequelize db:migrate' to set up your database
+Configure your environment
+```
+cp sample.env .env
+```
+Referring to sample.env, configure the enviroment
 
+Run database migration
+```
+npx sequelize db:migrate
+```
+
+Start the application
+```
 npm start
+```
 
+## Deploy to Heroku
 
+If the `DATABASE_URL` environment variable is set, it will be used instead, both to connect the application to, and for any migrations.
+
+To run migrations on Heroku, first connect to a shell using
+```
+heroku run bash --app <your_app_name>
+```
