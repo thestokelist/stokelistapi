@@ -166,7 +166,6 @@ router.put(
                 //Restore a post if it was previously deleted
                 if (post.deleted_at !== null) {
                     await post.restore()
-                    //TODO: Use hooks to restore media too
                 }
                 post.moderated = false
                 await post.publiciseMedia()

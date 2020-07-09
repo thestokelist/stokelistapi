@@ -19,7 +19,6 @@ exports.strategy = new passportJWT.Strategy(
             )
             const tokenValidFromTime = new Date(user.tokenValidity)
             //Check token was issued at or after the last time the user logged out from all sessions
-            //TODO: V2, would be nice to implement this check without a database lookup
             if (tokenIssueTime.getTime() >= tokenValidFromTime.getTime()) {
                 console.log(`Auth successful for ${user.email}`)
                 return next(null, user)

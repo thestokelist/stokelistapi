@@ -20,7 +20,6 @@ cron.schedule('0 * * * *', function () {
 })
 
 var corsOptions = {
-    //TODO: Be more restrictive with CORS
     //Can't use credentials with a wildcard include, but can use this 'wildcard' origin function
     origin: (origin, callback) => {
         callback(null, true)
@@ -48,8 +47,6 @@ app.use(passport.initialize())
 app.enable('trust proxy')
 
 mountRoutes(app)
-
-//TODO: Some rate limiting? Perhaps just for login/validation
 
 //Export only needed for testing
 module.exports = app

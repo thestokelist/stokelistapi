@@ -5,7 +5,6 @@ const turndownService = new TurndownService()
 
 const User = require('./user')
 const Report = require('./report')
-const Media = require('./media')
 
 const isntTooYellyWithTheCaps = (string) => {
     const upperCaseCount = string.replace(/[^A-Z]/g, '').length
@@ -117,7 +116,6 @@ Post.init(
 
 //foreign key constraints
 Post.hasMany(Report, { foreignKey: 'post_id', allowNull: false, as: 'reports' })
-Post.hasMany(Media, { foreignKey: 'post_id', allowNull: false, as: 'media' })
 
 Post.afterCreate(async (post) => {
     await User.findOrCreate({

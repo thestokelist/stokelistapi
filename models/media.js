@@ -1,5 +1,6 @@
 const { DataTypes, Model, Op } = require('sequelize')
 const sequelize = require('../db')
+const Post = require('./post')
 const {
     deleteS3Object,
     updateS3Acl,
@@ -70,8 +71,13 @@ Media.init(
     }
 )
 
+Post.hasMany(Media, { foreignKey: 'post_id', allowNull: false, as: 'media' })
+Media.belongsTo(Post, { foreignKey: 'post_id', as: 'post' })
+
 Media.removeUnusedUploads = async () => {
     const twoHours = twoHoursAgo()
+    //An unused upload has a non-null guid, but was created more than 2 hours ago
+    //ie, it was uploaded then never assigned to a post
     const unusedUploads = await Media.findAll({
         where: {
             guid: {
@@ -83,7 +89,28 @@ Media.removeUnusedUploads = async () => {
         },
     })
     unusedUploads.forEach((media) => {
-        console.log(`Desroying media with id ${media.id}`)
+        console.log(`Desroying unused media with id ${media.id}`)
+        media.destroy()
+    })
+    //A deleted media belongs to a post that was deleted more than 2 hours ago
+    //We don't delete immediately, because we want to allow the user to undelete
+    const deletedMedia = await Media.findAll({
+        include: [
+            {
+                model: Post,
+                as: 'post',
+                required: true,
+                paranoid: false,
+                where: {
+                    deleted_at: {
+                        [Op.lt]: twoHours,
+                    },
+                },
+            },
+        ],
+    })
+    deletedMedia.forEach((media) => {
+        console.log(`Desroying deleted media with id ${media.id}`)
         media.destroy()
     })
 }
