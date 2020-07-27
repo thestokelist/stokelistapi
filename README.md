@@ -17,7 +17,7 @@ If you want to run your own Stoke List, and we encourage you to do so, you'll ne
 
 Clone this Github
 ```
-https://github.com/thestoke/api.thestoke.ca
+git clone https://github.com/thestokelist/stokelistapi
 ```
 
 Download dependencies
