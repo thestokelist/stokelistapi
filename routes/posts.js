@@ -47,6 +47,16 @@ const whereClause = {
     moderated: false,
 }
 
+let oneMonthAgo = new Date()
+oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+
+const oneMonthWhereClause = {
+    ...whereClause,
+    created_at: {
+        [Op.gte]: oneMonthAgo,
+    },
+}
+
 const includeMedia = [
     {
         model: Media,
@@ -60,7 +70,7 @@ router.get('/', async (req, res) => {
     console.log(`Loading latest posts with offset ${offset}`)
     const posts = await Post.findAll({
         attributes: postAttributes,
-        where: { ...whereClause },
+        where: { ...oneMonthWhereClause },
         order: standardGetOrder,
         limit: POST_LIMIT,
         offset: offset,
@@ -101,7 +111,7 @@ router.get('/search', async (req, res) => {
     const posts = await Post.findAll({
         attributes: postAttributes,
         where: {
-            ...whereClause,
+            ...oneMonthWhereClause,
             [Op.or]: {
                 description: {
                     [Op.iLike]: query,
