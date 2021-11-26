@@ -150,11 +150,11 @@ Post.prototype.toJSON = function () {
     return values
 }
 
-Post.prototype.publiciseMedia = async function () {
+Post.prototype.publishMedia = async function () {
     if (Array.isArray(this.media) && this.media.length > 0) {
         console.log(`Making media public for post with id ${this.id}`)
         for (let m of this.media) {
-            await m.publicise()
+            await m.publish()
         }
     }
 }

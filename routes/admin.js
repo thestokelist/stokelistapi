@@ -174,7 +174,7 @@ router.put(
                     await post.restore()
                 }
                 post.moderated = false
-                await post.publiciseMedia()
+                await post.publishMedia()
                 await post.save()
                 console.log(`Approved post with id ${postID}`)
                 return res.sendStatus(204)

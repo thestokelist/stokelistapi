@@ -89,7 +89,7 @@ Media.removeUnusedUploads = async () => {
         },
     })
     unusedUploads.forEach((media) => {
-        console.log(`Desroying unused media with id ${media.id}`)
+        console.log(`Destroying unused media with id ${media.id}`)
         media.destroy()
     })
     //A deleted media belongs to a post that was deleted more than 2 hours ago
@@ -133,7 +133,7 @@ Media.prototype.toJSON = function () {
     return values
 }
 
-Media.prototype.publicise = async function () {
+Media.prototype.publish = async function () {
     await updateS3Acl('public-read', this.key)
     await updateS3Acl('public-read', this.thumb)
 }
@@ -149,18 +149,17 @@ Media.prototype.toJSONSigned = async function () {
     const signedThumbUrl = await getSignedUrl(this.thumb)
     mediaJSON.link = signedUrl
     mediaJSON.thumbLink = signedThumbUrl
-    console.log(mediaJSON)
     return mediaJSON
 }
 
-Media.assign = async (media, postId) =>
+Media.assign = async (media, post) => {
     await Media.update(
         {
             name: media.name || '',
-            post_id: postId,
+            post_id: post.id,
             guid: null,
         },
         { where: { guid: media.guid } }
     )
-
+}
 module.exports = Media
