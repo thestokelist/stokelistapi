@@ -45,6 +45,7 @@ router.get(
                         email: initialPost.email,
                     },
                     paranoid: false,
+                    order: [['created_at', 'DESC']],
                 })
                 return res.json(judgementPosts)
             }
