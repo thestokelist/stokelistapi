@@ -6,7 +6,15 @@ const ssl = process.env.DB_SSL === undefined ? true : process.env.DB_SSL
 
 let sequelize
 if (process.env.DATABASE_URL) {
-    sequelize = new Sequelize(process.env.DATABASE_URL)
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
+        dialect: 'postgres',
+        ssl: ssl,
+        native: ssl,
+        dialectModule: pg,
+        dialectOptions: {
+            ssl: ssl ? undefined : 'require',
+        },
+    })
     console.log(
         'New postgres database connection initialized from DATABASE_URL on Heroku'
     )
