@@ -2,12 +2,12 @@ exports.trimPostDescriptions = (postsToTrim) => {
     let trimmedPosts = []
     for (const post of postsToTrim) {
         const postJSON = post.toJSON()
-        if (postJSON.description.length > 143) {
+        if (postJSON.description.length > 243) {
             let words = postJSON.description.split(' ')
             let trimmedDescription = ''
             for (const word of words) {
                 trimmedDescription += word + ' '
-                if (trimmedDescription.length > 140) {
+                if (trimmedDescription.length > 240) {
                     trimmedDescription += '...'
                     break
                 }
