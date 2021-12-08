@@ -347,52 +347,78 @@ router.put(
 //Create a new post
 router.post('/', recaptcha.middleware.verify, async (req, res) => {
     console.log(`Building new post`)
-    const recaptcha = req.recaptcha
-    const passingScore = parseFloat(process.env.CAPTCHA_SCORE) || 0.5
-    //Check that the captcha passed in meets our requirements
-    if (
-        !recaptcha.error &&
-        recaptcha.data.action === 'post' &&
-        recaptcha.data.score > passingScore
+    await passport.authenticate('jwt', { session: false }, async function (
+        _,
+        user
     ) {
-        console.log('Valid captcha token')
-        const post = await Post.build({
-            title: req.body.title || null,
-            description: req.body.description || null,
-            price: req.body.price || null,
-            email: req.body.email || null,
-            location: req.body.location || null,
-            exactLocation: req.body.exactLocation || null,
-            isGarageSale: req.body.isGarageSale || false,
-            startTime: req.body.startTime || null,
-            endTime: req.body.endTime || null,
-            remoteIp: req.ip,
-        })
-        try {
-            await post.validate()
-            const isBanned = await User.isBanned(post.email)
-            if (isBanned) {
-                console.log(
-                    `Skipping post creation for banned user: ${post.email}`
-                )
-            } else {
-                await post.save()
-                const mediaArray = req.body.media
-                if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-                    for (let media of mediaArray) {
-                        await Media.assign(media, post)
+        const recaptcha = req.recaptcha
+        const passingScore = parseFloat(process.env.CAPTCHA_SCORE) || 0.5
+        //Check that the captcha passed in meets our requirements
+        if (
+            !recaptcha.error &&
+            recaptcha.data.action === 'post' &&
+            recaptcha.data.score > passingScore
+        ) {
+            console.log('Valid captcha token')
+            const post = await Post.build({
+                title: req.body.title || null,
+                description: req.body.description || null,
+                price: req.body.price || null,
+                email: req.body.email || null,
+                location: req.body.location || null,
+                exactLocation: req.body.exactLocation || null,
+                isGarageSale: req.body.isGarageSale || false,
+                startTime: req.body.startTime || null,
+                endTime: req.body.endTime || null,
+                remoteIp: req.ip,
+            })
+            try {
+                await post.validate()
+                const isBanned = await User.isBanned(post.email)
+                if (isBanned) {
+                    console.log(
+                        `Skipping post creation for banned user: ${post.email}`
+                    )
+                } else {
+                    await post.save()
+                    const mediaArray = req.body.media
+                    if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+                        for (let media of mediaArray) {
+                            await Media.assign(media, post)
+                        }
+                    }
+                    if (user && req.body.email === user.email) {
+                        //No need for validation on this post, user is logged in
+                        post.emailVerified = true
+                        const moderatedPosts = await Post.count({
+                            where: { email: post.email, moderated: true },
+                        })
+                        if (moderatedPosts > 0) {
+                            post.moderated = true
+                        }
+                        await post.save()
+                        const postWithMedia = await Post.findOne({
+                            where: {
+                                id: post.id,
+                            },
+                            include: includeMedia,
+                        })
+                        await postWithMedia.publishMedia()
+                        console.log(`New post saved without validation email`)
+                        return res.sendStatus(204)
+                    } else {
+                        sendPostValidationMessage(post)
+                        console.log(
+                            `New post saved and validation email sent to ${post.email}`
+                        )
+                        return res.sendStatus(204)
                     }
                 }
-                sendPostValidationMessage(post)
-                console.log(
-                    `New post saved and validation email sent to ${post.email}`
-                )
-                return res.sendStatus(204)
+            } catch (e) {
+                console.log('New post validation failed')
             }
-        } catch (e) {
-            console.log('New post validation failed')
         }
-    }
-    //Throw 'post validation failed response if captcha auth fails
-    return res.sendStatus(422)
+        //Throw 'post validation failed response if captcha auth fails
+        return res.sendStatus(422)
+    })(req, res)
 })
