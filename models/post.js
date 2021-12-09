@@ -129,7 +129,7 @@ Post.beforeDestroy(async (post) => {
     post.privatizeMedia()
 })
 
-Post.prototype.hasPermissions = (user) => {
+Post.prototype.hasPermissions = function (user) {
     //If a post is moderated, only admins can act on it
     let hasPermission = user.isAdmin === true
     if (!this.moderated) {
