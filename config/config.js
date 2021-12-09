@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 let username = process.env.DB_USER
 let password = process.env.DB_PASS
 let database = process.env.DB_NAME
@@ -21,6 +23,8 @@ module.exports = {
         database,
         host,
         dialect: 'postgres',
+        ssl: true,
+        native: true,
     },
     //Production uses same env variables as development
     production: {
@@ -29,5 +33,7 @@ module.exports = {
         database,
         host,
         dialect: 'postgres',
+        ssl: true,
+        native: true,
     },
 }
