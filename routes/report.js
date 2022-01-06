@@ -3,6 +3,7 @@ const Router = require('express-promise-router')
 const Report = require('../models/report')
 const Media = require('../models/media')
 const Post = require('../models/post')
+const postCache = require('../cache')
 
 const router = new Router()
 module.exports = router
@@ -63,6 +64,9 @@ router.post('/:id', async (req, res) => {
                     post.moderated = true
                     await post.privatizeMedia()
                     await post.save()
+                    //Cache invalidation
+                    postCache.del(post.id)
+                    postCache.regenLatest()
                 }
             }
             //Whether we actually created a report or not, say we did

@@ -5,6 +5,7 @@ const Post = require('../models/post')
 const User = require('../models/user')
 const Report = require('../models/report')
 const Media = require('../models/media')
+const postCache = require('../cache')
 
 // this has the same API as the normal express router except
 // it allows you to use async functions as route handlers
@@ -80,6 +81,9 @@ router.delete(
                 })
                 user.bannedAt = new Date()
                 await user.save()
+                //Cache invalidation
+                postCache.del(postID)
+                postCache.regenLatest()
                 return res.sendStatus(204)
             }
         }
@@ -177,6 +181,8 @@ router.put(
                 post.moderated = false
                 await post.publishMedia()
                 await post.save()
+                //Cache invalidation
+                postCache.regenLatest()
                 console.log(`Approved post with id ${postID}`)
                 return res.sendStatus(204)
             }

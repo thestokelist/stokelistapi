@@ -9,6 +9,7 @@ const Post = require('../models/post')
 const User = require('../models/user')
 const Media = require('../models/media')
 const { trimPostDescriptions } = require('../util/posts')
+const postCache = require('../cache')
 
 const recaptcha = new Recaptcha(
     process.env.CAPTCHA_KEY,
@@ -68,15 +69,31 @@ const includeMedia = [
 router.get('/', async (req, res) => {
     const offset = !isNaN(req.query.offset) ? parseInt(req.query.offset) : 0
     console.log(`Loading latest posts with offset ${offset}`)
-    const posts = await Post.findAll({
-        attributes: postAttributes,
-        where: { ...oneMonthWhereClause },
-        order: standardGetOrder,
-        limit: POST_LIMIT,
-        offset: offset,
-        include: includeMedia,
-    })
-    return res.json(trimPostDescriptions(posts))
+    let trimmedPosts = null
+    // If offset is 0, attempt to load from the cache
+    if (offset === 0) {
+        const cachedTrimmedPosts = postCache.get('latest')
+        if (cachedTrimmedPosts !== undefined) {
+            trimmedPosts = cachedTrimmedPosts
+        }
+    }
+    //If we couldn't load from cache, or if offset is not 0, fetch from db
+    if (trimmedPosts === null) {
+        const posts = await Post.findAll({
+            attributes: postAttributes,
+            where: { ...oneMonthWhereClause },
+            order: standardGetOrder,
+            limit: POST_LIMIT,
+            offset: offset,
+            include: includeMedia,
+        })
+        trimmedPosts = trimPostDescriptions(posts)
+        if (offset === 0) {
+            //Only cache latest posts with 0 offset
+            postCache.put('latest', trimmedPosts)
+        }
+    }
+    return res.json(trimmedPosts)
 })
 
 //Returns all future garage sales
@@ -132,16 +149,24 @@ router.get('/search', async (req, res) => {
 //Get all sticky posts
 router.get('/sticky', async (req, res) => {
     console.log('Loading sticky posts')
-    const posts = await Post.findAll({
-        attributes: postAttributes,
-        where: {
-            ...whereClause,
-            sticky: true,
-        },
-        order: standardGetOrder,
-        include: includeMedia,
-    })
-    return res.json(trimPostDescriptions(posts))
+    let trimmedStickyPosts = null
+    const cachedTrimmedStickyPosts = postCache.get('sticky')
+    if (cachedTrimmedStickyPosts === undefined) {
+        const posts = await Post.findAll({
+            attributes: postAttributes,
+            where: {
+                ...whereClause,
+                sticky: true,
+            },
+            order: standardGetOrder,
+            include: includeMedia,
+        })
+        trimmedStickyPosts = trimPostDescriptions(posts)
+        postCache.put('sticky', trimmedStickyPosts)
+    } else {
+        trimmedStickyPosts = cachedTrimmedStickyPosts
+    }
+    return res.json(trimmedStickyPosts)
 })
 
 //Get all posts made by an authenticated user
@@ -167,17 +192,29 @@ router.get(
 //Get a single post, by public ID
 router.get('/:id', async (req, res) => {
     const postID = !isNaN(req.params.id) ? parseInt(req.params.id) : null
-    console.log(`Loading posts for id ${postID}`)
-    const post = await Post.findOne({
-        attributes: postAttributes,
-        where: {
-            ...whereClause,
-            id: postID,
-        },
-        include: includeMedia,
-        order: [['media', 'created_at', 'ASC']],
-    })
-    return res.json(post)
+    if (postID !== null) {
+        console.log(`Loading posts for id ${postID}`)
+        let postJSON = null
+        const cachedPost = postCache.get(postID)
+        if (cachedPost !== undefined) {
+            postJSON = cachedPost
+        } else {
+            const post = await Post.findOne({
+                attributes: postAttributes,
+                where: {
+                    ...whereClause,
+                    id: postID,
+                },
+                include: includeMedia,
+                order: [['media', 'created_at', 'ASC']],
+            })
+            postJSON = post
+            postCache.put(postID, postJSON)
+        }
+        return res.json(postJSON)
+    } else {
+        return res.sendStatus(404)
+    }
 })
 
 //Validate a single post, by private guid
@@ -212,6 +249,7 @@ router.post('/v/:uuid', async (req, res) => {
             await post.publishMedia()
         }
         await post.save()
+        postCache.regenLatest()
         const returnObject = { post, token: user.generateToken() }
         console.log(`Validated post with uuid ${postUUID}`)
         return res.status(200).send(returnObject)
@@ -234,6 +272,9 @@ router.delete(
             if (post.hasPermissions(req.user)) {
                 await post.destroy()
                 await post.privatizeMedia()
+                //Cache invalidation
+                postCache.del(postID)
+                postCache.regenLatest()
                 console.log(`Deleted post with id ${postID}`)
                 return res.sendStatus(204)
             }
@@ -266,6 +307,8 @@ router.patch(
                 if (post.moderated !== true) {
                     await post.publishMedia()
                 }
+                //Cache invalidation
+                postCache.regenLatest()
                 console.log(`Undeleted post with id ${postID}`)
                 return res.sendStatus(204)
             }
@@ -335,6 +378,9 @@ router.put(
                         await post.publishMedia()
                     }
                 }
+                //Cache invalidation
+                postCache.del(postID)
+                postCache.regenLatest()
                 console.log(`Updated post with id ${postID}`)
                 return res.json(post)
             }
@@ -404,6 +450,8 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
                             include: includeMedia,
                         })
                         await postWithMedia.publishMedia()
+                        //Cache invalidation
+                        postCache.regenLatest()
                         console.log(`New post saved without validation email`)
                         return res.sendStatus(204)
                     } else {
