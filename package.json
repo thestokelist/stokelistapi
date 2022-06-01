@@ -37,7 +37,7 @@
     "postmark": "^2.7.8",
     "sequelize": "^6.9.0",
     "sequelize-cli": "^6.3.0",
-    "sharp": "^0.25.4",
+    "sharp": "^0.30.5",
     "sqlite3": "^4.2.0",
     "turndown": "^6.0.0",
     "universal-cookie": "^4.0.3",
