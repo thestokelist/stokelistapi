@@ -12,7 +12,7 @@ if (process.env.DATABASE_URL) {
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
-            ssl: ssl ? undefined : 'require',
+            ssl: ssl ? 'require' : undefined,
         },
     })
     console.log(
@@ -29,7 +29,7 @@ if (process.env.DATABASE_URL) {
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
-            ssl: ssl ? undefined : 'require',
+            ssl: ssl ? 'require' : undefined,
         },
     })
     console.log(
