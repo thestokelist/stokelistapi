@@ -34,7 +34,7 @@
     "pg": "^8.7.1",
     "pg-hstore": "^2.3.3",
     "pg-native": "^3.0.1",
-    "postmark": "^2.7.8",
+    "postmark": "^3.0.14",
     "sequelize": "^6.9.0",
     "sequelize-cli": "^6.3.0",
     "sharp": "^0.31.1",
