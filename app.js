@@ -1,4 +1,3 @@
-const scout = require('@scout_apm/scout-apm')
 require('dotenv').config()
 const express = require('express')
 const cron = require('node-cron')
@@ -20,7 +19,7 @@ cron.schedule('0 * * * *', function () {
     removeUnusedUploads()
 })
 
-const corsOptions = {
+var corsOptions = {
     //Can't use credentials with a wildcard include, but can use this 'wildcard' origin function
     origin: (origin, callback) => {
         callback(null, true)
@@ -28,39 +27,26 @@ const corsOptions = {
     credentials: true,
 }
 
-// The "main" function
-const start = async () => {
-    // Trigger the download and installation of the core-agent
-    await scout.install({
-        allowShutdown: true, // allow shutting down spawned scout-agent processes from this program
-        monitor: true, // enable monitoring
-        name: 'stokelistapi',
-    })
+const app = express()
 
-    const app = express()
+//JSON parsing for POST requests
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 
-    app.use(scout.expressMiddleware())
+//Use CORS
+app.use(cors(corsOptions))
 
-    //JSON parsing for POST requests
-    app.use(bodyParser.urlencoded({ extended: true }))
-    app.use(bodyParser.json())
+//Helmet for security related protections
+app.use(helmet())
 
-    //Use CORS
-    app.use(cors(corsOptions))
+//Passport for JWT based authentication
+passport.use(strategy)
+app.use(passport.initialize())
 
-    //Helmet for security related protections
-    app.use(helmet())
+//This makes sure express gives us a real IP address
+app.enable('trust proxy')
 
-    //Passport for JWT based authentication
-    passport.use(strategy)
-    app.use(passport.initialize())
+mountRoutes(app)
 
-    //This makes sure express gives us a real IP address
-    app.enable('trust proxy')
-
-    mountRoutes(app)
-
-    return app
-}
-
-module.exports = start
+//Export only needed for testing
+module.exports = app

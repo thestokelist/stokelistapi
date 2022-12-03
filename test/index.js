@@ -14,8 +14,7 @@ exports.initSupertestWithMocks = async () => {
     jest.mock('../db')
     //Do the regular requires
 
-    const start = require('../app.js')
-    const app = await start()
+    const app = require('../app.js')
     const supertest = require('supertest')
 
     //Initialize supertest
