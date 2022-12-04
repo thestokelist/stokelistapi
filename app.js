@@ -1,18 +1,11 @@
 require('dotenv').config()
 const express = require('express')
-const cron = require('node-cron')
 const mountRoutes = require('./routes')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const helmet = require('helmet')
 const passport = require('passport')
 const { strategy } = require('./auth')
-const { removeUnusedUploads } = require('./util/scheduled')
-
-cron.schedule('0 * * * *', function () {
-    console.log('Clearing unused uploads, on the hour')
-    removeUnusedUploads()
-})
 
 var corsOptions = {
     //Can't use credentials with a wildcard include, but can use this 'wildcard' origin function
