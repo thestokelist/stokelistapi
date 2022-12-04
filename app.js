@@ -1,4 +1,3 @@
-const scout = require('@scout_apm/scout-apm')
 require('dotenv').config()
 const express = require('express')
 const cron = require('node-cron')
@@ -29,9 +28,6 @@ var corsOptions = {
 }
 
 const app = express()
-
-//Scout APM
-app.use(scout.expressMiddleware())
 
 //JSON parsing for POST requests
 app.use(bodyParser.urlencoded({ extended: true }))
