@@ -7,12 +7,7 @@ const cors = require('cors')
 const helmet = require('helmet')
 const passport = require('passport')
 const { strategy } = require('./auth')
-const { removeUnusedUploads, processNewEmails } = require('./util/scheduled')
-
-cron.schedule('*/10 * * * *', function () {
-    console.log('Checking for new emails to process, every 10 minutes')
-    processNewEmails()
-})
+const { removeUnusedUploads } = require('./util/scheduled')
 
 cron.schedule('0 * * * *', function () {
     console.log('Clearing unused uploads, on the hour')
