@@ -208,8 +208,12 @@ router.get('/:id', async (req, res) => {
                 include: includeMedia,
                 order: [['media', 'created_at', 'ASC']],
             })
-            postJSON = post
-            postCache.put(postID, postJSON)
+            if (post === null) {
+                return res.sendStatus(404)
+            } else {
+                postJSON = post
+                postCache.put(postID, postJSON)
+            }
         }
         return res.json(postJSON)
     } else {
