@@ -64,6 +64,7 @@ const processNewEmails = async () => {
                             )
                         }
                     } catch (err) {
+                        console.log('Error in forwarding email', err)
                         //If email send fails, star the email
                         await client.messageCopy(seq, '[Gmail]/Starred')
                     } finally {
@@ -82,7 +83,7 @@ const processNewEmails = async () => {
             console.log('Skipping email check, no gmail user defined')
         }
     } catch (e) {
-        console.log('Error checking emails')
+        console.log('Error checking emails', e)
     }
 }
 
