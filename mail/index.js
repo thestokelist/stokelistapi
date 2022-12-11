@@ -62,13 +62,12 @@ exports.forwardValidEmail = (
     htmlBody,
     attachments
 ) => {
-    const emptyBodyIfNone = htmlBody ?? ''
     client.sendEmail({
         From: fromEmail,
         To: recipient,
         ReplyTo: sender,
         Subject: subject,
-        HtmlBody: emptyBodyIfNone,
+        HtmlBody: htmlBody,
         Attachments: attachments,
     })
 }
