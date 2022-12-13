@@ -62,12 +62,23 @@ exports.forwardValidEmail = (
     htmlBody,
     attachments
 ) => {
-    client.sendEmail({
+    const postmarkAttachments = []
+    if (attachments && attachments.length) {
+        attachments.forEach((attachment) => {
+            postmarkAttachments.push({
+                Content: attachment.content.toString('base64'),
+                ContentType: attachment.contentType,
+                Name: attachment.filename,
+            })
+        })
+    }
+    const emailContents = {
         From: fromEmail,
         To: recipient,
         ReplyTo: sender,
         Subject: subject,
         HtmlBody: htmlBody,
-        Attachments: attachments,
-    })
+        Attachments: postmarkAttachments,
+    }
+    client.sendEmail(emailContents)
 }
