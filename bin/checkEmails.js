@@ -30,7 +30,7 @@ const processNewEmails = async () => {
                     const toAddress = parsed.to.value[0].address
                     const fromAddress = parsed.from.value[0].address
                     const subject = parsed.subject
-                    const body = parsed.html
+                    const body = parsed.html ? parsed.html : parsed.textAsHtml
                     const attachments = parsed.attachments
                     //If gmail user is user@gmail.com
                     //A valid email is an email send to user+postID@gmail.com
