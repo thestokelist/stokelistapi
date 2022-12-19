@@ -44,14 +44,25 @@ Thanks, The Stoke List.`,
 
 exports.forwardInvalidEmail = (sender, subject, htmlBody, attachments) => {
     if (adminEmail && adminEmail !== '') {
-        client.sendEmail({
+        const postmarkAttachments = []
+        if (attachments && attachments.length) {
+            attachments.forEach((attachment) => {
+                postmarkAttachments.push({
+                    Content: attachment.content.toString('base64'),
+                    ContentType: attachment.contentType,
+                    Name: attachment.filename,
+                })
+            })
+        }
+        const email = {
             From: fromEmail,
             To: adminEmail,
             ReplyTo: sender,
             Subject: subject,
             HtmlBody: htmlBody,
-            Attachments: attachments,
-        })
+            Attachments: postmarkAttachments,
+        }
+        client.sendEmail(email)
     }
 }
 
