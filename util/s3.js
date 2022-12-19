@@ -13,6 +13,7 @@ AWS.config.update({
 })
 
 const s3 = new AWS.S3()
+const sharpInstance = sharp()
 
 //This middleware requires express-request-id
 exports.uploadMiddleware = multer({
@@ -31,7 +32,7 @@ exports.uploadMiddleware = multer({
                     cb(null, `${req.id}.${extension}`)
                 },
                 transform: function (req, file, cb) {
-                    cb(null, sharp())
+                    cb(null, sharpInstance)
                 },
             },
             {
@@ -42,7 +43,7 @@ exports.uploadMiddleware = multer({
                 },
                 transform: function (req, file, cb) {
                     //Set height to 120, width maintaining aspect ratio
-                    cb(null, sharp().resize({ height: 120 }))
+                    cb(null, sharpInstance.resize({ height: 120 }))
                 },
             },
         ],
