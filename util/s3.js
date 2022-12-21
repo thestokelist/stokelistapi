@@ -1,7 +1,6 @@
 const AWS = require('aws-sdk')
 const multer = require('multer')
-const multerS3 = require('multer-s3-transform')
-const sharp = require('sharp')
+const s3Storage = require('multer-sharp-s3')
 
 const bucketName = process.env.AWS_S3_BUCKET
 
@@ -14,40 +13,18 @@ AWS.config.update({
 
 const s3 = new AWS.S3()
 
-//This middleware requires express-request-id
-exports.uploadMiddleware = multer({
-    storage: multerS3({
-        s3: s3,
-        bucket: bucketName,
-        acl: 'private',
-        shouldTransform: function (req, file, cb) {
-            cb(null, /^image/i.test(file.mimetype))
-        },
-        transforms: [
-            {
-                id: 'original',
-                key: function (req, file, cb) {
-                    const extension = file.originalname.split('.').pop()
-                    cb(null, `${req.id}.${extension}`)
-                },
-                transform: function (req, file, cb) {
-                    cb(null, sharp())
-                },
-            },
-            {
-                id: 'thumbnail',
-                key: function (req, file, cb) {
-                    const extension = file.originalname.split('.').pop()
-                    cb(null, `thumb_${req.id}.${extension}`)
-                },
-                transform: function (req, file, cb) {
-                    //Set height to 120, width maintaining aspect ratio
-                    cb(null, sharp().resize({ height: 120 }))
-                },
-            },
-        ],
-    }),
-}).single('media')
+const upload = s3Storage({
+    s3,
+    Bucket: bucketName,
+    ACL: 'private',
+    Key: (req, file, cb) => {
+        const extension = file.originalname.split('.').pop()
+        cb(null, `${req.id}.${extension}`)
+    },
+    multiple: true,
+    resize: [{ suffix: 'thumb', height: 120 }, { suffix: 'original' }],
+})
+exports.uploadMiddleware = multer({ storage: upload }).single('media')
 
 exports.getSignedUrl = async (key) => {
     const signedUrlExpireSeconds = 60 * 60

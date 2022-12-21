@@ -13,10 +13,8 @@ router.post('/', addRequestId, uploadMiddleware, async (req, res) => {
     try {
         //upload middleware has done the s3 upload, req.file is the response
         const file = req.file
-        const originalUpload = file.transforms.find((x) => x.id === 'original')
-        const thumbnailUpload = file.transforms.find(
-            (x) => x.id === 'thumbnail'
-        )
+        const originalUpload = file.original
+        const thumbnailUpload = file.thumb
         const media = new Media({
             thumb: thumbnailUpload.key,
             name: '',
