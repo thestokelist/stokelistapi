@@ -1,17 +1,17 @@
-const AWS = require('aws-sdk')
+const { config, S3 } = require('aws-sdk')
 const multer = require('multer')
 const s3Storage = require('multer-sharp-s3')
 
 const bucketName = process.env.AWS_S3_BUCKET
 
-AWS.config.update({
+config.update({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     signatureVersion: 'v4',
     region: 'ca-central-1',
 })
 
-const s3 = new AWS.S3()
+const s3 = new S3()
 
 const upload = s3Storage({
     s3,
