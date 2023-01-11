@@ -8,8 +8,8 @@ let sequelize
 if (process.env.DATABASE_URL) {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
+        logging: false,
         ssl: {
-            require: ssl,
             rejectUnauthorized: false,
         },
         native: ssl,
@@ -29,7 +29,6 @@ if (process.env.DATABASE_URL) {
         username: process.env.DB_USER,
         password: process.env.DB_PASS,
         ssl: {
-            require: ssl,
             rejectUnauthorized: false,
         },
         native: ssl,
