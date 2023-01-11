@@ -2,8 +2,10 @@ const { Sequelize } = require('sequelize')
 const pg = require('pg')
 
 //default true
-const ssl = process.env.DB_SSL === undefined ? true : process.env.DB_SSL
-
+const ssl = {
+    require: process.env.DB_SSL === undefined ? true : process.env.DB_SSL,
+    rejectUnauthorized: false,
+}
 let sequelize
 if (process.env.DATABASE_URL) {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
