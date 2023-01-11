@@ -2,15 +2,16 @@ const { Sequelize } = require('sequelize')
 const pg = require('pg')
 
 //default true
-const ssl = {
-    require: process.env.DB_SSL === undefined ? true : process.env.DB_SSL,
-    rejectUnauthorized: false,
-}
+const ssl = process.env.DB_SSL === undefined ? true : process.env.DB_SSL
+
 let sequelize
 if (process.env.DATABASE_URL) {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
-        ssl: ssl,
+        ssl: {
+            require: ssl,
+            rejectUnauthorized: false,
+        },
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
@@ -27,7 +28,10 @@ if (process.env.DATABASE_URL) {
         database: process.env.DB_NAME,
         username: process.env.DB_USER,
         password: process.env.DB_PASS,
-        ssl: ssl,
+        ssl: {
+            require: ssl,
+            rejectUnauthorized: false,
+        },
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
