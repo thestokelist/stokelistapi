@@ -9,13 +9,14 @@ if (process.env.DATABASE_URL) {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
         logging: false,
-        ssl: {
-            rejectUnauthorized: false,
-        },
+        ssl: ssl,
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
-            ssl: ssl ? 'require' : undefined,
+            ssl: {
+                require: ssl,
+                rejectUnauthorized: false,
+            },
         },
     })
     console.log(
@@ -28,9 +29,7 @@ if (process.env.DATABASE_URL) {
         database: process.env.DB_NAME,
         username: process.env.DB_USER,
         password: process.env.DB_PASS,
-        ssl: {
-            rejectUnauthorized: false,
-        },
+        ssl: ssl,
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
