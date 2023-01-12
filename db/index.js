@@ -14,7 +14,6 @@ if (process.env.DATABASE_URL) {
         dialectModule: pg,
         dialectOptions: {
             ssl: {
-                require: ssl,
                 rejectUnauthorized: false,
             },
         },
