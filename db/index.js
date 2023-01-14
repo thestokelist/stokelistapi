@@ -13,7 +13,10 @@ if (process.env.DATABASE_URL) {
         native: ssl,
         dialectModule: pg,
         dialectOptions: {
-            ssl: ssl ? 'require' : undefined,
+            ssl: {
+                require: true,
+                rejectUnauthorized: false,
+            },
         },
     })
     console.log(
