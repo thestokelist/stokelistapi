@@ -2,10 +2,9 @@ const { initSupertestWithMocks } = require('../test')
 
 let request
 
-beforeAll(async (done) => {
+beforeAll(async () => {
     //Set up supertest, which sets up all the mocks in Jest
     request = await initSupertestWithMocks()
-    done()
 })
 
 //Smoke tests to make sure our testing framework runs and connects to our application
