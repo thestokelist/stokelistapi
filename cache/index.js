@@ -1,6 +1,7 @@
 //const NodeCache = require('node-cache')
 /*const postCache = new NodeCache({
-    stdTTL: 30000,
+    //Signed image URL's expire after 60 minutes, so expire after 50 with a 10 minute check interval
+    stdTTL: 3000,
     checkPeriod: 600,
 })*/
 
