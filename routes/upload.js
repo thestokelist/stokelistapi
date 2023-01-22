@@ -27,7 +27,7 @@ router.post(
                 .resize({ height: 120 })
                 .toBuffer()
             const extension = file.originalname.split('.').pop()
-            const filename = req.id + extension
+            const filename = `${req.id}.${extension}`
             const thumbFilename = `${req.id}-thumb.${extension}`
             await upload(
                 original,
