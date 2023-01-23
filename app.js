@@ -34,6 +34,16 @@ app.use(passport.initialize())
 //This makes sure express gives us a real IP address
 app.enable('trust proxy')
 
+//Force https in production
+app.use(function (request, response, next) {
+    if (process.env.NODE_ENV === 'production' && !request.secure) {
+        return response.redirect(
+            'https://' + request.headers.host + request.url
+        )
+    }
+    next()
+})
+
 mountRoutes(app)
 
 //Export only needed for testing
