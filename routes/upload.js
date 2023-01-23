@@ -24,6 +24,7 @@ router.post(
             const file = req.file
             const original = file.buffer
             const thumbnail = await sharp(original)
+                .rotate()
                 .resize({ height: 120 })
                 .toBuffer()
             const extension = file.originalname.split('.').pop()
