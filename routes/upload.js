@@ -22,8 +22,15 @@ router.post(
             //upload middleware has done the s3 upload, req.file is the response
             //TOOD: acl: private
             const file = req.file
-            const original = file.buffer
-            const thumbnail = await sharp(original)
+            const input = file.buffer
+            const original = await sharp(input)
+                .rotate()
+                .resize(1920, 1080, {
+                    fit: sharp.fit.inside,
+                    withoutEnlargement: true,
+                })
+                .toBuffer()
+            const thumbnail = await sharp(input)
                 .rotate()
                 .resize({ height: 120 })
                 .toBuffer()
