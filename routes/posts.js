@@ -459,11 +459,20 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
                         console.log(`New post saved without validation email`)
                         return res.sendStatus(204)
                     } else {
-                        sendPostValidationMessage(post)
-                        console.log(
-                            `New post saved and validation email sent to ${post.email}`
-                        )
-                        return res.sendStatus(204)
+                        console.log(`Sending validation email to ${post.email}`)
+                        try {
+                            sendPostValidationMessage(post)
+                            console.log(
+                                `New post saved and validation email sent to ${post.email}`
+                            )
+                            return res.sendStatus(204)
+                        } catch (e) {
+                            console.warn(
+                                `New post saved but validation email failed to ${post.email}`
+                            )
+                            //If sending the email fails, fail like post validation failed
+                            return res.sendStatus(422)
+                        }
                     }
                 }
             } catch (e) {

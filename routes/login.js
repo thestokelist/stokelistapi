@@ -17,7 +17,6 @@ router.post('/', async (req, res) => {
         console.log(`Error when trying to send login link to ${email}`)
         return res.sendStatus(400)
     }
-    console.log(`Sending login link to ${email}`)
     let [user] = await User.findOrCreate({
         where: {
             email: email,
@@ -25,8 +24,15 @@ router.post('/', async (req, res) => {
     })
     user.loginToken = v4()
     await user.save()
-    sendLoginMessage(user)
-    return res.sendStatus(200)
+    console.log(`Sending login link to ${email}`)
+    try {
+        sendLoginMessage(user)
+        console.log(`Sent login link to ${email}`)
+        return res.sendStatus(200)
+    } catch (e) {
+        console.warn(`Error sending login link to ${email}:`, e)
+        return res.sendStatus(400)
+    }
 })
 
 //Validates a user login with magic token, clears that token, returns JWT
