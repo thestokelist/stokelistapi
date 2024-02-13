@@ -28,7 +28,7 @@ Post.init(
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                len: [0, 45],
+                len: [0, 50],
                 isntTooYellyWithTheCaps: isntTooYellyWithTheCaps,
             },
         },
