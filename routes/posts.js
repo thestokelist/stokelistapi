@@ -483,6 +483,6 @@ router.post('/', recaptcha.middleware.verify, async (req, res) => {
         console.log(
             `Failing captcha with error: ${recaptcha.error} and action: ${recaptcha.data?.action} and score: ${recaptcha.data?.score}`
         )
-        return res.sendStatus(422)
+        return res.sendStatus(498)
     })(req, res)
 })
