@@ -45,15 +45,35 @@ Thanks, The Stoke List.`,
 exports.forwardInvalidEmail = (sender, subject, htmlBody, attachments) => {
     if (adminEmail && adminEmail !== '') {
         const postmarkAttachments = []
+        let removedAttachments = []
+        let totalSize = 0
+        
         if (attachments && attachments.length) {
+            // First pass: calculate total size and identify large attachments
             attachments.forEach((attachment) => {
-                postmarkAttachments.push({
-                    Content: attachment.content.toString('base64'),
-                    ContentType: attachment.contentType,
-                    Name: attachment.filename,
-                })
+                const size = attachment.content.length
+                if (size > 10 * 1024 * 1024) { // 10MB in bytes
+                    removedAttachments.push({
+                        name: attachment.filename,
+                        size: (size / (1024 * 1024)).toFixed(2) + 'MB'
+                    })
+                } else {
+                    totalSize += size
+                    postmarkAttachments.push({
+                        Content: attachment.content.toString('base64'),
+                        ContentType: attachment.contentType,
+                        Name: attachment.filename,
+                    })
+                }
             })
+            
+            // Add note about removed attachments if any were removed
+            if (removedAttachments.length > 0) {
+                const note = `<br><br><strong>Note:</strong> The following attachments were removed because they exceeded our 10MB size limit:<br><ul>${removedAttachments.map(att => `<li>${att.name} (${att.size})</li>`).join('')}</ul>`
+                htmlBody += note
+            }
         }
+        
         const email = {
             From: fromEmail,
             To: adminEmail,
@@ -74,15 +94,35 @@ exports.forwardValidEmail = (
     attachments
 ) => {
     const postmarkAttachments = []
+    let removedAttachments = []
+    let totalSize = 0
+    
     if (attachments && attachments.length) {
+        // First pass: calculate total size and identify large attachments
         attachments.forEach((attachment) => {
-            postmarkAttachments.push({
-                Content: attachment.content.toString('base64'),
-                ContentType: attachment.contentType,
-                Name: attachment.filename,
-            })
+            const size = attachment.content.length
+            if (size > 10 * 1024 * 1024) { // 10MB in bytes
+                removedAttachments.push({
+                    name: attachment.filename,
+                    size: (size / (1024 * 1024)).toFixed(2) + 'MB'
+                })
+            } else {
+                totalSize += size
+                postmarkAttachments.push({
+                    Content: attachment.content.toString('base64'),
+                    ContentType: attachment.contentType,
+                    Name: attachment.filename,
+                })
+            }
         })
+        
+        // Add note about removed attachments if any were removed
+        if (removedAttachments.length > 0) {
+            const note = `<br><br><strong>Note:</strong> The following attachments were removed because they exceeded our 10MB size limit:<br><ul>${removedAttachments.map(att => `<li>${att.name} (${att.size})</li>`).join('')}</ul>`
+            htmlBody += note
+        }
     }
+    
     const emailContents = {
         From: fromEmail,
         To: recipient,
